@@ -18,6 +18,18 @@ public class testdriver2 {
 		System.out.println("4. Register as driver");
 		System.out.println("Please enter the number next to the option you want.");
 	}
+	
+	public static void userMenu() {
+		
+	}
+	
+	public static void driverMenu(){
+		
+	}
+	
+	enum LoginState{
+		MENU, LOGGINGIN, LOGGEDIN, REGISTERING
+	}
 
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
@@ -26,10 +38,10 @@ public class testdriver2 {
 		String choice;
 		String cname;
 		String dname;
+		LoginState loginState = LoginState.MENU;
 		String sql = null;
 		int c = 0;
 		try {
-			// remember to replace the password
 			con = new Connector2();
 			System.out.println("Database connection established");
 
@@ -47,7 +59,8 @@ public class testdriver2 {
 				if (c < 1 | c > 4)
 					continue;
 				if (c == 1) {
-					if(Login()) {
+					loginState = LoginState.LOGGINGIN;
+					if(Login(in)) {
 						
 					}
 					else {
@@ -91,12 +104,37 @@ public class testdriver2 {
 		}
 	}
 	
-	public static boolean Login()
+	public static boolean Login(BufferedReader in)
 	{
 		String phoneNumber = "";
 		String password = "";
-		System.out.println("Please enter your phone number.");
-		
+		String yesNo = "";
+		Boolean loggingIn = true;
+		while(loggingIn)
+		{
+			try {
+				System.out.println("Please enter your phone number.");
+				while ((phoneNumber = in.readLine()) == null && phoneNumber.length() == 0);
+				//Query phone number
+					//If successful, continue
+					//Else
+					 System.out.println("Would you like to try again? Y or N?");
+					 while ((yesNo = in.readLine()) == null && yesNo.length() == 0);
+					 if(yesNo.equalsIgnoreCase("Y")) continue;
+					 else return false;
+				System.out.println("Please enter your password.");
+				while((password = in.readLine()) == null && password.length() == 0);
+				//Query phone number and password
+					//If successful, return true
+					//Else
+					 System.out.println("Would you like to try again? Y or N?");
+					 while ((yesNo = in.readLine()) == null && yesNo.length() == 0);
+					 if(yesNo.equalsIgnoreCase("Y")) continue;
+					 else return false;
+			} catch (IOException e) {
+				return false;
+			}
+		}
 		return false;
 	}
 }
