@@ -10,17 +10,19 @@ public class testdriver2 {
 	 * @param args
 	 */
 	public static void displayMenu() {
-		System.out.println("        Welcome to UUber System     ");
-		System.out.println("1. search a course by cname and dname:");
-		System.out.println("2. enter your own query:");
-		System.out.println("3. exit:");
-		System.out.println("pleasse enter your choice:");
+		System.out.println("        Welcome to UberSkool bruh!     ");
+		System.out.println("What would you like to do today?");
+		System.out.println("1. Login as registered user");
+		System.out.println("2. Login as registered driver");
+		System.out.println("3. Register as user");
+		System.out.println("4. Register as driver");
+		System.out.println("Please enter the number next to the option you want.");
 	}
 
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		System.out.println("Example for cs5530");
-		Connector con = null;
+		Connector2 con = null;
 		String choice;
 		String cname;
 		String dname;
@@ -28,32 +30,29 @@ public class testdriver2 {
 		int c = 0;
 		try {
 			// remember to replace the password
-			con = new Connector();
+			con = new Connector2();
 			System.out.println("Database connection established");
 
 			BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
 
 			while (true) {
 				displayMenu();
-				while ((choice = in.readLine()) == null && choice.length() == 0)
-					;
+				while ((choice = in.readLine()) == null && choice.length() == 0);
 				try {
 					c = Integer.parseInt(choice);
 				} catch (Exception e) {
 
 					continue;
 				}
-				if (c < 1 | c > 3)
+				if (c < 1 | c > 4)
 					continue;
 				if (c == 1) {
-					System.out.println("please enter a cname:");
-					while ((cname = in.readLine()) == null && cname.length() == 0)
-						;
-					System.out.println("please enter a dname:");
-					while ((dname = in.readLine()) == null && dname.length() == 0)
-						;
-					Course course = new Course();
-					System.out.println(course.getCourse(cname, dname, con.stmt));
+					if(Login()) {
+						
+					}
+					else {
+						
+					}
 				} else if (c == 2) {
 					System.out.println("please enter your query below:");
 					while ((sql = in.readLine()) == null && sql.length() == 0)
@@ -90,5 +89,14 @@ public class testdriver2 {
 					/* ignore close errors */ }
 			}
 		}
+	}
+	
+	public static boolean Login()
+	{
+		String phoneNumber = "";
+		String password = "";
+		System.out.println("Please enter your phone number.");
+		
+		return false;
 	}
 }
