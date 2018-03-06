@@ -12,7 +12,10 @@ public class UberSkool {
 	static String password = "";
 	static String firstName = "";
 	static String lastName = "";
+	static String loginName = "";
 	static String address = "";
+	static String ID = "";
+	static Boolean isDriver = false;
 	static LoginState loginState = LoginState.MENU;
 
 
@@ -42,7 +45,7 @@ public class UberSkool {
 	}
 	
 	enum LoginState{
-		MENU, LOGGINGIN, LOGGEDIN, REGISTERING, USERMENU
+		MENU, LOGGINGIN, LOGGEDIN, REGISTERING, USERMENU, DRIVERMENU
 	}
 
 	public static void main(String[] args) {
@@ -72,7 +75,7 @@ public class UberSkool {
 					continue;
 				if (c == 1) {
 					loginState = LoginState.LOGGINGIN;
-					if(Login(con)) {
+					if(Login(con, false)) {
 						loginState = LoginState.USERMENU;
 						userMenu();
 					}
@@ -81,7 +84,14 @@ public class UberSkool {
 						displayMenu();
 					}
 				} else if (c == 2) {
-					
+					if(Login(con, true)){
+						loginState = LoginState.DRIVERMENU;
+						driverMenu();
+					}
+					else {
+						loginState = LoginState.MENU;
+						displayMenu();
+					}
 				} else {
 					System.out.println("EoM");
 					con.stmt.close();
@@ -105,10 +115,11 @@ public class UberSkool {
 		}
 	}
 	
-	public static boolean Login(Connector con) throws IOException
+	public static boolean Login(Connector con, Boolean driver) throws IOException
 	{
-		Boolean numberCheck = false;
+		Boolean loginCheck = false;
 		Boolean passwordCheck = false;
+		Boolean IDLogin = false;
 		String yesNo = "";
 		String query = "";
 		Scanner scanner = new Scanner(System.in);
@@ -116,23 +127,41 @@ public class UberSkool {
 		{
 			try {
 				if(!passwordCheck){
-					if(!numberCheck) System.out.println("Please enter your phone number.");
-					phoneNumber = scanner.nextLine();
-					if(phoneNumber.equals("1")){
+					if(!loginCheck) {
+						if(!driver) System.out.println("Please enter your login name.");
+						else System.out.println("Please enter your login Name or ID.");
+					}
+					loginName = scanner.nextLine();
+					if(loginName.equals("0")){
 						clearUser();
 						return false;
-						}
-					else if(!Pattern.matches("\\d{10}|(?:\\d{3}-){2}\\d{4}|\\(\\d{3}\\)\\d{3}-?\\d{4}", phoneNumber)){
-						numberCheck = true;
-						phoneNumber = "";
-						System.out.println("Please enter a different format or enter 1 to return to main menu.");
-						continue;
 					}
-					else numberCheck = false;
+					else if(!driver){
+						if(!Pattern.matches("^(?=.*[a-z]).+$", loginName)){
+							loginCheck = true;
+							loginName = "";
+							System.out.println("Please enter a different format or enter 0 to return to main menu.");
+							continue;
+						}
+						else loginCheck = false;
+					}
+					else if(driver){
+						if(Pattern.matches("^(?=.*[a-z]).+$", loginName)) loginCheck = false;
+						else if (Pattern.matches("^[1-9]\\d*$", loginName)) {
+							IDLogin = true;
+							loginCheck = false;
+						}
+						else{
+							loginCheck = true;
+							loginName = "";
+							System.out.println("Please enter a different format or enter 0 to return to main menu.");
+							continue;
+						}
+					}
 				}
 				if(!passwordCheck) System.out.println("Please enter your password.");
 				password = scanner.nextLine();
-				if(password.equals("1")){
+				if(password.equals("0")){
 					clearUser();
 					return false;
 				}
@@ -142,19 +171,26 @@ public class UberSkool {
 					continue;
 				}
 				else {
-					query = "select * from UU where phone = " + "\"" + phoneNumber + "\"" + " and password = " + "\"" + password + "\"";
+					if(!driver)query = "select * from UU where loginName = " + "\"" + loginName + "\"" + " and password = " + "\"" + password + "\"";
+					else {
+						if(IDLogin) 	query = "select * from UD where ID = " + loginName + " and password = " + "\"" + password + "\"";
+						else query = "select * from UD where loginName = " + "\"" + loginName + "\"" + " and password = " + "\"" + password + "\"";
+					}
 					ResultSet rs = con.stmt.executeQuery(query);
 					ResultSetMetaData rsmd = rs.getMetaData();
 					if(rs.next()) { 
-						 String firstName = rs.getString("firstName"); 
-						 String lastName = rs.getString("lastName");
+						 firstName = rs.getString("firstName"); 
+						 lastName = rs.getString("lastName");
+						 if(driver) ID = rs.getString("ID");
+						 isDriver = true;
 						 loginState = LoginState.LOGGEDIN;
 						 return true;
 						}
 					else {
-						System.out.println("We could not find a user with those credentials. Please enter a phone number or enter 1 to return to main menu");
+						if(!driver) System.out.println("We could not find a user with those credentials. Please enter a login name or enter 1 to return to main menu");
+						else System.out.println("We could not find a user with those credentials. Please enter a login name or ID, or enter 1 to return to main menu");
 						passwordCheck = false;
-						numberCheck = true;
+						loginCheck = true;
 						continue;
 					}
 				}
@@ -166,11 +202,14 @@ public class UberSkool {
 	}
 	
 	public static void clearUser(){
-		String phoneNumber = "";
-		String password = "";
-		String firstName = "";
-		String lastName = "";
-		String address = "";
-		LoginState loginState = LoginState.MENU;
+		phoneNumber = "";
+		password = "";
+		firstName = "";
+		lastName = "";
+		loginName = "";
+		address = "";
+		ID = "";
+		isDriver = false;
+		loginState = LoginState.MENU;
 	}
 }
