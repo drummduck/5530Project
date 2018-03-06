@@ -17,23 +17,26 @@ public class UberSkool {
 	static String ID = "";
 	static Boolean isDriver = false;
 	static LoginState loginState = LoginState.MENU;
+	
+	static String ls = System.getProperty("line.separator");
 
 
 	/**
 	 * @param args
 	 */
 	public static void displayMenu() {
-		System.out.println("Welcome to UberSkool bruh!");
+		System.out.println(ls + "Welcome to UberSkool bruh!" + ls);
 		System.out.println("What would you like to do today?");
-		System.out.println("1. Login as registered user");
-		System.out.println("2. Login as registered driver");
-		System.out.println("3. Register as user");
-		System.out.println("4. Register as driver");
-		System.out.println("Please enter the number next to the option you want.");
+		System.out.println("0: Quit Program");
+		System.out.println("1: Login as registered user");
+		System.out.println("2: Login as registered driver");
+		System.out.println("3: Register as user");
+		System.out.println("4: Register as driver");
+		System.out.println("Please enter the number next to the option you want." + ls);
 	}
 	
 	public static void userMenu() {
-		System.out.println("Welcome " + firstName + " " + lastName);
+		System.out.println("Welcome user " + firstName + " " + lastName + ls);
 		System.out.println("What can we do for you?");
 		System.out.println("");
 		System.out.println("");
@@ -41,7 +44,11 @@ public class UberSkool {
 	}
 	
 	public static void driverMenu(){
-		
+		System.out.println("Welcome driver " + firstName + " " + lastName + ls);
+		System.out.println("What can we do for you?");
+		System.out.println("");
+		System.out.println("");
+		System.out.println("");
 	}
 	
 	enum LoginState{
@@ -71,9 +78,20 @@ public class UberSkool {
 
 					continue;
 				}
-				if (c < 1 | c > 4)
+				if (c < 0 | c > 4) {
+					System.out.println("Not a valid option, please select from the following:");
+					System.out.println("0: Quit Program");
+					System.out.println("1: Login as registered user");
+					System.out.println("2: Login as registered driver");
+					System.out.println("3: Register as user");
+					System.out.println("4: Register as driver");
 					continue;
-				if (c == 1) {
+				}
+				else if (c == 0) {
+					clearUser();
+					System.out.println("Good Bye");
+					break;
+				} else if (c == 1) {
 					loginState = LoginState.LOGGINGIN;
 					if(Login(con, false)) {
 						loginState = LoginState.USERMENU;
@@ -91,6 +109,14 @@ public class UberSkool {
 					else {
 						loginState = LoginState.MENU;
 						displayMenu();
+					}
+				} else if(c == 3){
+					if(!register(con, false)) {
+						loginState = LoginState.MENU;
+						displayMenu();
+					}
+					else {
+						
 					}
 				} else {
 					System.out.println("EoM");
@@ -134,43 +160,39 @@ public class UberSkool {
 					loginName = scanner.nextLine();
 					if(loginName.equals("0")){
 						clearUser();
+						scanner.close();
 						return false;
-					}
-					else if(!driver){
+					} else if(!driver){
 						if(!Pattern.matches("^(?=.*[a-z]).+$", loginName)){
 							loginCheck = true;
 							loginName = "";
-							System.out.println("Please enter a different format or enter 0 to return to main menu.");
+							System.out.println(ls + "Please enter a different format or enter 0 to return to main menu.");
 							continue;
-						}
-						else loginCheck = false;
-					}
-					else if(driver){
+						} else loginCheck = false;
+					}else if(driver){
 						if(Pattern.matches("^(?=.*[a-z]).+$", loginName)) loginCheck = false;
 						else if (Pattern.matches("^[1-9]\\d*$", loginName)) {
 							IDLogin = true;
 							loginCheck = false;
-						}
-						else{
+						} else{
 							loginCheck = true;
 							loginName = "";
-							System.out.println("Please enter a different format or enter 0 to return to main menu.");
+							System.out.println(ls + "Please enter a different format or enter 0 to return to main menu.");
 							continue;
 						}
 					}
 				}
-				if(!passwordCheck) System.out.println("Please enter your password.");
+				if(!passwordCheck) System.out.println(ls + "Please enter your password.");
 				password = scanner.nextLine();
 				if(password.equals("0")){
 					clearUser();
+					scanner.close();
 					return false;
-				}
-				else if(!Pattern.matches(".{8,}", password)) {
+				} else if(!Pattern.matches(".{8,}", password)) {
 					passwordCheck = true;
-					System.out.println("Please enter a different format or enter 1 to return to main menu.");
+					System.out.println(ls + "Please enter a different format or enter 0 to return to main menu.");
 					continue;
-				}
-				else {
+				} else {
 					if(!driver)query = "select * from UU where loginName = " + "\"" + loginName + "\"" + " and password = " + "\"" + password + "\"";
 					else {
 						if(IDLogin) 	query = "select * from UD where ID = " + loginName + " and password = " + "\"" + password + "\"";
@@ -181,24 +203,53 @@ public class UberSkool {
 					if(rs.next()) { 
 						 firstName = rs.getString("firstName"); 
 						 lastName = rs.getString("lastName");
-						 if(driver) ID = rs.getString("ID");
-						 isDriver = true;
+						 if(driver) {
+							 ID = rs.getString("ID");
+							 isDriver = true;
+						 }
 						 loginState = LoginState.LOGGEDIN;
+						 scanner.close();
 						 return true;
-						}
-					else {
-						if(!driver) System.out.println("We could not find a user with those credentials. Please enter a login name or enter 1 to return to main menu");
-						else System.out.println("We could not find a user with those credentials. Please enter a login name or ID, or enter 1 to return to main menu");
+						} else {
+						if(!driver) System.out.println(ls + "We could not find a user with those credentials. Please enter a login name or enter 0 to return to main menu");
+						else System.out.println(ls + "We could not find a user with those credentials. Please enter a login name or ID, or enter 0 to return to main menu");
 						passwordCheck = false;
 						loginCheck = true;
 						continue;
 					}
 				}
 			} catch (SQLException e) {
-				System.out.println("There was an issue with your lookup.");
-				return false;
+				System.out.println(ls + "There was an issue with your lookup." + ls);
+				if(!driver) System.out.println(ls + "We could not find a user with those credentials. Please enter a login name or enter 0 to return to main menu");
+				else System.out.println(ls + "We could not find a user with those credentials. Please enter a login name or ID, or enter 0 to return to main menu");
+				passwordCheck = false;
+				loginCheck = true;
+				continue;
 			}
 		}
+	}
+	
+	public static boolean register(Connector con, Boolean driver) {
+		Scanner scanner = new Scanner(System.in);
+		if(driver) {
+			System.out.println("Do you already have a user account you would like to register as a driver? Y or N?");
+			if(scanner.nextLine().equals("Y")) {
+				try {
+					if(Login(con, driver)){
+						//Insert driver into UD
+					} else {
+						//Prompt for try again or quit
+					}
+				} catch (IOException e) {
+					//Put error
+					e.printStackTrace();
+				}
+			} else {
+				System.out.println("Please enter a login name you would like to use.");
+				//Must have a letter, else prompt for retry or quit
+			}
+		}
+		return driver;
 	}
 	
 	public static void clearUser(){
