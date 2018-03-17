@@ -57,21 +57,22 @@ public class UberSkool {
 
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
-		Connector con = null;
+		Connector2 con = null;
 		String choice;
 		String cname;
 		String dname;
 		String sql = null;
 		int c = 0;
 		try {
-			con = new Connector();
+			con = new Connector2();
 			System.out.println("Database connection established");
 
-			BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+			Scanner scanner = new Scanner(System.in);
 			displayMenu();
 
 			while (true) {
-				while ((choice = in.readLine()) == null && choice.length() == 0);
+				if(scanner.hasNextLine()) choice = scanner.nextLine();
+				else continue;
 				try {
 					c = Integer.parseInt(choice);
 				} catch (Exception e) {
@@ -90,10 +91,10 @@ public class UberSkool {
 				else if (c == 0) {
 					clearUser();
 					System.out.println("Good Bye");
-					break;
+					return;
 				} else if (c == 1) {
 					loginState = LoginState.LOGGINGIN;
-					if(Login(con, false)) {
+					if(Login(con, scanner, false)) {
 						loginState = LoginState.USERMENU;
 						userMenu();
 					}
@@ -102,7 +103,7 @@ public class UberSkool {
 						displayMenu();
 					}
 				} else if (c == 2) {
-					if(Login(con, true)){
+					if(Login(con, scanner, true)){
 						loginState = LoginState.DRIVERMENU;
 						driverMenu();
 					}
@@ -111,7 +112,7 @@ public class UberSkool {
 						displayMenu();
 					}
 				} else if(c == 3){
-					if(!register(con, false)) {
+					if(!register(con, scanner, false)) {
 						loginState = LoginState.MENU;
 						displayMenu();
 					}
@@ -119,7 +120,7 @@ public class UberSkool {
 						userMenu();
 					}
 				} else if(c == 4){
-					if(!register(con, true)) {
+					if(!register(con, scanner, true)) {
 						loginState = LoginState.MENU;
 						displayMenu();
 					}
@@ -150,14 +151,13 @@ public class UberSkool {
 		}
 	}
 	
-	public static boolean Login(Connector con, Boolean driver) throws IOException
+	public static boolean Login(Connector2 con, Scanner scanner, Boolean driver) throws IOException
 	{
 		Boolean loginCheck = false;
 		Boolean passwordCheck = false;
 		Boolean IDLogin = false;
 		String yesNo = "";
 		String query = "";
-		Scanner scanner = new Scanner(System.in);
 		while(true)
 		{
 			try {
@@ -169,7 +169,6 @@ public class UberSkool {
 					loginName = scanner.nextLine();
 					if(loginName.equals("0")){
 						clearUser();
-						scanner.close();
 						return false;
 					} else if(!driver){
 						if(!Pattern.matches("^(?=.*[a-z]).+$", loginName)){
@@ -238,8 +237,7 @@ public class UberSkool {
 		}
 	}
 	
-	public static boolean register(Connector con, Boolean driver) {
-		Scanner scanner = new Scanner(System.in);
+	public static boolean register(Connector2 con, Scanner scanner, Boolean driver) {
 		String cmd = "";
 		String query;
 		Boolean loginCheck = false;
@@ -249,7 +247,7 @@ public class UberSkool {
 				if(!loginCheck && !passwordCheck)System.out.println(ls +"Do you already have a user account you would like to register as a driver? Y or N?");
 				if(!loginCheck && !passwordCheck && (cmd = scanner.nextLine()).equals("Y")) {
 					try {
-						if(Login(con, driver)){
+						if(Login(con, scanner, driver)){
 							query = String.format("select * from UD where loginName = %s", loginName);
 							ResultSet rs = con.stmt.executeQuery(query);
 							ResultSetMetaData rsmd = rs.getMetaData();
@@ -272,13 +270,8 @@ public class UberSkool {
 								System.out.println("Your driver ID is " + ID);
 								return true;
 							}		
-						} else {
-							System.out.println(ls + "User does not exist, Would you like to try again? Y or N?");
-							if((cmd = scanner.nextLine()).equals("Y")){
-								continue;
-							}
-							else if(cmd.equals("N")) return false;
-						}
+						} else return false;
+						
 					} catch (IOException e) {
 						//Put error
 						e.printStackTrace();
@@ -303,7 +296,8 @@ public class UberSkool {
 						loginName = cmd;
 					}
 						System.out.println(ls + "Please enter a password that has at least eight characters or enter 0 to return to main menu.");
-						if(!Pattern.matches(".{8,}" ,cmd = scanner.nextLine())){
+						if((cmd = scanner.nextLine()).equals("0")) return false;
+						else if(!Pattern.matches(".{8,}" ,cmd)){
 							System.out.println(ls + "Please enter a password with minimum of eight characters or enter 0 to return to main menu.");
 							password = "";
 							passwordCheck = true;
@@ -318,10 +312,12 @@ public class UberSkool {
 						System.out.println(ls + "Please enter your lastName");
 						System.out.println(ls + "Please enter an address");
 					}
+				else if(cmd.equals("0")) return false;
+				else System.out.println(ls + "Please answer Y or N or quit with 0" + ls);
 				}
 			}
 		}
-	}
+	
 	
 	public static void clearUser(){
 		phoneNumber = "";
