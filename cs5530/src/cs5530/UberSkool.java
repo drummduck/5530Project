@@ -38,7 +38,8 @@ public class UberSkool {
 	public static void userMenu() {
 		System.out.println("Welcome user " + firstName + " " + lastName + ls);
 		System.out.println("What can we do for you?");
-		System.out.println("");
+		System.out.println("0: Logout");
+		System.out.println("1: Reserve a car");
 		System.out.println("");
 		System.out.println("");
 	}
@@ -52,7 +53,7 @@ public class UberSkool {
 	}
 	
 	enum LoginState{
-		MENU, LOGGINGIN, LOGGEDIN, REGISTERING, USERMENU, DRIVERMENU
+		MENU, LOGGINGIN, REGISTERING, USERMENU, DRIVERMENU
 	}
 
 	public static void main(String[] args) {
@@ -98,6 +99,9 @@ public class UberSkool {
 					System.out.println("Good Bye");
 					return;
 				} else if (c == 1) {
+					if(loginState == LoginState.USERMENU) {
+						reserve(con, scanner);
+					}
 					loginState = LoginState.LOGGINGIN;
 					if(Login(con, scanner, false)) {
 						loginState = LoginState.USERMENU;
@@ -203,7 +207,7 @@ public class UberSkool {
 							 ID = rs.getInt("ID");
 							 isDriver = true;
 						 }
-						 loginState = LoginState.LOGGEDIN;
+						 loginState = LoginState.USERMENU;
 						 return true;
 						} else {
 						if(!driver){
@@ -418,11 +422,11 @@ public class UberSkool {
 				else {
 					try {
 						System.out.println(String.format("phoneNumber: %s, loginName: %s, password: %s, firstName: %s, lastName: %s, address: %s", phoneNumber, loginName, password, firstName, lastName, address));
-						query = String.format("select * from UU where loginName = '%s'", loginName);
+						query = String.format("select * from UU where loginName = '%s' or phoneNumber = '%s'", loginName, phoneNumber);
 						ResultSet rs = con.stmt.executeQuery(query);
 						ResultSetMetaData rsmd = rs.getMetaData();
 						if(rs.next()) { 
-							System.out.println(ls + "A driver with that login name already exists.");
+							System.out.println(ls + "loginName or phoneNumber exists already.");
 							while(true) {
 								System.out.println(ls + "Would you like to try again? Y or N?");
 								if((cmd = scanner.nextLine()).equals("Y")) break;
@@ -517,5 +521,9 @@ public class UberSkool {
 			return false;
 		}
 		else return true;
+	}
+	
+	public static void reserve(Connector2 con, Scanner scanner){
+		
 	}
 }
