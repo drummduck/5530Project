@@ -267,7 +267,7 @@ public class UberSkool {
 								else if(cmd.equals("N")) return false;
 							}
 							else {
-								query = String.format("insert into UD (address, phone, firstName, lastName, loginName, password) values ('%s', '%s', '%s', '%s', '%s', '%s')",
+								query = String.format("insert into UD (address, phoneNumber, firstName, lastName, loginName, password) values ('%s', '%s', '%s', '%s', '%s', '%s')",
 										address, phoneNumber, firstName, lastName, loginName, password);
 								con.stmt.executeQuery(query);
 								query = String.format("select * from UD where loginName = %s", loginName);
@@ -345,7 +345,7 @@ public class UberSkool {
 								continue;
 							}
 							else {
-								query = String.format("insert into UD (address, phone, firstName, lastName, loginName, password) values ('%s', '%s', '%s', '%s', '%s', '%s')",
+								query = String.format("insert into UD (address, phoneNumber, firstName, lastName, loginName, password) values ('%s', '%s', '%s', '%s', '%s', '%s')",
 										address, phoneNumber, firstName, lastName, loginName, password);
 								con.stmt.executeQuery(query);
 								query = String.format("select * from UD where loginName = %s", loginName);
@@ -385,7 +385,7 @@ public class UberSkool {
 					return false;
 				}
 				else password = cmd;
-				System.out.println(ls + "Please enter your phone number e.g. (123)-456-7890");
+				System.out.println(ls + "Please enter your phone number e.g. (123)456-7890");
 				if((cmd = scanner.nextLine()).equals("0")) {
 					return false;
 				}
@@ -433,13 +433,14 @@ public class UberSkool {
 							continue;
 						}
 						else {
-							query = String.format("insert into UU (phone, loginName, password, firstName, lastName, address) values ('%s', '%s', '%s', '%s', '%s', '%s')",
-									phoneNumber, loginName, password, firstName, lastName, address);
-							con.stmt.executeQuery(query);
+							query = String.format("INSERT INTO UU (loginName, password, phoneNumber, address, firstName, lastName) VALUES ('%s', '%s', '%s', '%s', '%s', '%s')",
+									loginName, password, phoneNumber, address, firstName, lastName);
+							con.stmt.executeUpdate(query);
 							return true;
 						}	
 					}
 					catch (SQLException e) {
+						e.printStackTrace();
 						System.out.println(ls + "There was an issue adding your user" + ls);
 						while(true) {
 							System.out.println(ls + "Would you like to try again? Y or N?");
