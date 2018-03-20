@@ -4,6 +4,7 @@ import java.lang.*;
 import java.sql.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.regex.Pattern;
 import java.io.*;
@@ -40,11 +41,11 @@ public class UberSkool {
 	}
 	
 	public static void userMenu() {
-		System.out.println("Welcome user " + firstName + " " + lastName + ls);
+		System.out.println(ls + "Welcome user " + firstName + " " + lastName + ls);
 		System.out.println("What can we do for you?");
 		System.out.println("0: Logout");
-		System.out.println("1: Record a reservation");
-		System.out.println("2: Record a ride");
+		System.out.println("1: Record reservations");
+		System.out.println("2: Record rides");
 		System.out.println("3: Declare a favorite UC");
 		System.out.println("4: Rate user feedback");
 		System.out.println("5: Rate user");
@@ -54,7 +55,7 @@ public class UberSkool {
 	}
 	
 	public static void driverMenu(){
-		System.out.println("Welcome driver " + firstName + " " + lastName + ls);
+		System.out.println(ls + "Welcome driver " + firstName + " " + lastName + ls);
 		System.out.println("What can we do for you?");
 		System.out.println("");
 		System.out.println("");
@@ -104,6 +105,11 @@ public class UberSkool {
 					continue;
 				}
 				else if (c == 0) {
+					if(loginState == LoginState.USERMENU) {
+						clearUser();
+						displayMenu();
+						loginState = LoginState.MENU;
+					}
 					clearUser();
 					System.out.println("Good Bye");
 					return;
@@ -112,15 +118,17 @@ public class UberSkool {
 						reserve(con, scanner);
 						userMenu();
 					}
-					loginState = LoginState.LOGGINGIN;
-					if(Login(con, scanner, false)) {
-						loginState = LoginState.USERMENU;
-						userMenu();
-					}
-					else{
-						clearUser();
-						loginState = LoginState.MENU;
-						displayMenu();
+					else if(loginState == LoginState.MENU) {
+						loginState = LoginState.LOGGINGIN;
+						if(Login(con, scanner, false)) {
+							loginState = LoginState.USERMENU;
+							userMenu();
+						}
+						else{
+							clearUser();
+							loginState = LoginState.MENU;
+							displayMenu();
+						}
 					}
 				} else if (c == 2) {
 					if(Login(con, scanner, true)){
@@ -194,7 +202,7 @@ public class UberSkool {
 				System.out.println(ls + "Please enter your password.");
 				if((cmd = scanner.nextLine()).equals("0")) return false;
 				else password = cmd;
-				if(!checkInfo(driver)){
+				if(!checkLoginInfo(loginName, password, driver)){
 					while(true) {
 						System.out.println(ls + "Would you like to try again? Y or N?");
 						if((cmd = scanner.nextLine()).equals("Y")) break;
@@ -256,6 +264,31 @@ public class UberSkool {
 				continue;
 			}
 		}
+	}
+	
+	public static boolean checkLoginInfo(String loginName, String password, Boolean driver) {
+		Boolean loginNameOkay = true;
+		Boolean passwordOkay = true;
+		
+		if(!driver) {
+			if(!Pattern.matches("^(?=.*[a-z]).+$", loginName)) loginNameOkay = false;
+		}
+		else {
+			try {
+				Integer.parseInt(loginName);
+			}
+			catch(NumberFormatException e) {
+				loginNameOkay = false;
+			}
+		}
+		if(!Pattern.matches(".{8,}", password)) passwordOkay = false;
+
+		if(!passwordOkay) System.out.println("Please enter a password with at least 8 characters");
+		if(driver && !loginNameOkay) System.out.println("Please enter a digit greater than 1 for driver ID");
+		if(!driver && !loginNameOkay) System.out.println("Please enter a login name with at least 1 non digit character");
+		
+		if(!loginNameOkay || !passwordOkay) return false;
+		return true;
 	}
 	
 	public static boolean register(Connector2 con, Scanner scanner, Boolean driver) {
@@ -491,32 +524,13 @@ public class UberSkool {
 		Boolean loginNameOkay = true;
 		Boolean addressOkay = true;
 		
-		if(driver) {
-			if(!Pattern.matches("\\d{10}|(?:\\d{3}-){2}\\d{4}|\\(\\d{3}\\)\\d{3}-?\\d{4}", phoneNumber)) phoneNumberOkay = false;
-			if(!Pattern.matches(".{8,}", password)) passwordOkay = false;
-			if(!Pattern.matches("/^[a-z ,.'-]+$/i", firstName)) firstNameOkay = false;
-			if(!Pattern.matches("/^[a-z ,.'-]+$/i", lastName)) lastNameOkay = false;
-			if(loginState == LoginState.REGISTERING) {
-				if(!Pattern.matches("^(?=.*[a-z]).+$", loginName)) loginNameOkay = false;
-			}
-			else {
-				try {
-					Integer.parseInt(loginName);
-				} catch (Exception e) {
-					loginNameOkay = false;
-				}
-			}
-			if(!Pattern.matches("^[a-zA-Z0-9\\s,'-]*$", address)) addressOkay = false;
-		}
-		
-		else {
-			if(!Pattern.matches("\\d{10}|(?:\\d{3}-){2}\\d{4}|\\(\\d{3}\\)\\d{3}-?\\d{4}", phoneNumber)) phoneNumberOkay = false;
-			if(!Pattern.matches(".{8,}", password)) passwordOkay = false;
-			if(!Pattern.matches("^[\\p{L} .'-]+$", firstName)) firstNameOkay = false;
-			if(!Pattern.matches("^[\\p{L} .'-]+$", lastName)) lastNameOkay = false;
-			if(!Pattern.matches("^(?=.*[a-z]).+$", loginName)) loginNameOkay = false;
-			//Not sure if we can really restrict this if(!Pattern.matches("^[a-zA-Z0-9\\s,'-]*$", address)) addressOkay = false;
-		}
+		if(!Pattern.matches("\\d{10}|(?:\\d{3}-){2}\\d{4}|\\(\\d{3}\\)\\d{3}-?\\d{4}", phoneNumber)) phoneNumberOkay = false;
+		if(!Pattern.matches(".{8,}", password)) passwordOkay = false;
+		if(!Pattern.matches("^[\\p{L} .'-]+$", firstName)) firstNameOkay = false;
+		if(!Pattern.matches("^[\\p{L} .'-]+$", lastName)) lastNameOkay = false;
+		if(!Pattern.matches("^(?=.*[a-z]).+$", loginName)) loginNameOkay = false;
+		//Not sure if we can really restrict this if(!Pattern.matches("^[a-zA-Z0-9\\s,'-]*$", address)) addressOkay = false;
+	
 		
 		if(!phoneNumberOkay) System.out.println("Please enter different format for phone number, e.g. (123)456-7890");
 		if(!passwordOkay) System.out.println("Please enter a password with at least 8 characters");
@@ -613,15 +627,29 @@ public class UberSkool {
 	}
 	
 	public static void reserve(Connector2 con, Scanner scanner) {
+		Boolean approved = false;
 		String cmd = "";
 		String query = "";
+		String date = "";
 		String vin = "";
+		String time = "";
+		ArrayList<String> reservations = new ArrayList<String>();
 		while(true)
 		{
+			System.out.println(ls + "What is the date of this reservation? e.g.(YYYY-MM-DD)");
+			if((cmd = scanner.nextLine()).equals("0")) return;
+			else date = cmd;
+			
+			System.out.println(ls + "What time? e.g.(HH:MM)");
+			if((cmd = scanner.nextLine()).equals("0")) return;
+			else time = cmd;
+			
 			System.out.println("Which car would you like to reserve? Please enter a VIN");
 			if((cmd = scanner.nextLine()).equals("0")) return;
-			else if(!Pattern.matches("^[a-zA-Z0-9]*$", cmd) || cmd.length() != 17) {
-				System.out.println(ls + "Please enter an alphanumeric of length 17 for VIN");
+			else vin = cmd;
+			
+			
+			if(!reserveCheck(date, time, vin)) {
 				while(true) {
 					System.out.println(ls + "Would you like to try again? Y or N?");
 					if((cmd = scanner.nextLine()).equals("Y")) break;
@@ -632,10 +660,35 @@ public class UberSkool {
 				continue;
 			}
 			else{
-				vin = cmd;
-				try {	
-					query = String.format("INSERT INTO Reserves (VIN, loginName) VALUES ('%s', '%s')", vin, loginName);
-					con.stmt.executeUpdate(query);
+				try {
+					query = String.format("select * from Reservations where VIN = '%s' or date = '%s'", vin, date);
+					ResultSet rs = con.stmt.executeQuery(query);
+					ResultSetMetaData rsmd = rs.getMetaData();
+					if(rs.next()) { 
+						System.out.println(ls + "Reservation already made for that vehicle during that time");
+						while(true) {
+							System.out.println(ls + "Would you like to try again? Y or N?");
+							if((cmd = scanner.nextLine()).equals("Y")) break;
+							else if(cmd.equals("0")) return;
+							else if(cmd.equals("N")) return;
+							else System.out.println(ls + "Not a valid option");
+						}
+						continue;
+					}
+					query = String.format("select * from UC where VIN = '%s'", vin);
+					rs = con.stmt.executeQuery(query);
+					rsmd = rs.getMetaData();
+					if(!rs.next()) { 
+						System.out.println(ls + "Vehicle does not exist");
+						while(true) {
+							System.out.println(ls + "Would you like to try again? Y or N?");
+							if((cmd = scanner.nextLine()).equals("Y")) break;
+							else if(cmd.equals("0")) return;
+							else if(cmd.equals("N")) return;
+							else System.out.println(ls + "Not a valid option");
+						}
+						continue;
+					}
 				}
 				catch (SQLException e) {
 					e.printStackTrace();
@@ -649,15 +702,92 @@ public class UberSkool {
 					}
 					continue;
 				}
-				
+				if(!reservations.contains(String.format("UC VIN: %s, DateTime: %s", vin, date + " " + time)))
+				reservations.add(String.format("UC VIN: %s, DateTime: %s", vin, date + " " + time));
 				while(true) {
-					System.out.println(ls + "Would you like to try again? Y or N?");
+					System.out.println(ls + "Would you like to add another reservation? Y or N?");
 					if((cmd = scanner.nextLine()).equals("Y")) break;
 					else if(cmd.equals("0")) return;
-					else if(cmd.equals("N")) return;
+					else if(cmd.equals("N")) {
+						if(reservations.isEmpty()) return;
+						else{
+							if(approveReservations(reservations, scanner)){
+							approved = true;
+							break;
+							}
+							else {
+								while(true) {
+									System.out.println(ls + "Would you like to try again? Y or N?");
+									if((cmd = scanner.nextLine()).equals("Y")) break;
+									else if(cmd.equals("0")) return;
+									else if(cmd.equals("N")) return;
+									else System.out.println(ls + "Not a valid option");
+								}
+								reservations.clear();
+								break;
+							}
+						}
+					}
 					else System.out.println(ls + "Not a valid option");
 				}
+				if(!approved) continue;
 			}
+			
+			if(approved) {
+				try {
+					for(String s: reservations) {
+						query = String.format("INSERT into Reservations (VIN, loginName, date) VALUES ('%s', '%s', '%s')", s.substring(8,24), loginName, s.substring((s.length()-1)-15));
+						con.stmt.executeUpdate(query);
+					}
+				}
+				catch (SQLException e) {
+					e.printStackTrace();
+					System.out.println(ls + "There was an issue adding your reservations" + ls);
+					while(true) {
+						System.out.println(ls + "Would you like to try again? Y or N?");
+						if((cmd = scanner.nextLine()).equals("Y")) {
+							reservations.clear();
+							break;
+						}
+						else if(cmd.equals("0")) return;
+						else if(cmd.equals("N")) return;
+						else System.out.println(ls + "Not a valid option");
+					}
+					continue;
+				}
+			}
+				
+			}
+		}
+	
+	public static boolean reserveCheck(String date, String time, String vin){
+		Boolean dateOkay = true;
+		Boolean vinOkay = true;
+		Boolean timeOkay = true;
+		
+		if(!Pattern.matches("^[a-zA-Z0-9]*$", vin) || vin.length() != 17) vinOkay = false;
+		if(!Pattern.matches("\\d{4}-\\d{2}-\\d{2}", date)) dateOkay = false;
+		if(!Pattern.matches("([01]?[0-9]|2[0-3]):[0-5][0-9]", time)) timeOkay = false;
+		
+		if(!vinOkay) System.out.println("Please enter an alphanumeric value with 17 characters for VIN");
+		if(!dateOkay) System.out.println("Please enter a date in this format: YYYY-MM-DD");
+		if(!timeOkay) System.out.println("Please enter a time in this format: HH:MM");
+
+		if(!vinOkay || !dateOkay || !timeOkay) return false;
+		return true;
+	}
+	
+	public static boolean approveReservations(ArrayList<String> reservations, Scanner scanner){
+		String cmd = "";
+		System.out.println(ls + "These are your reservations:");
+		for(String s: reservations) System.out.println(s);
+
+		while(true) {
+			System.out.println(ls + "Do these look okay to you? Y or N?");
+			if((cmd = scanner.nextLine()).equals("Y")) return true;
+			else if(cmd.equals("0")) return false;
+			else if(cmd.equals("N")) return false;
+			else System.out.println(ls + "Not a valid option");
 		}
 	}
 }
