@@ -2,6 +2,8 @@ package cs5530;
 
 import java.lang.*;
 import java.sql.*;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Scanner;
 import java.util.regex.Pattern;
 import java.io.*;
@@ -20,6 +22,8 @@ public class UberSkool {
 	
 	static String ls = System.getProperty("line.separator");
 
+	
+	//TODO:Figure out some stupid random algorithm to give users awards.....
 
 	/**
 	 * @param args
@@ -39,9 +43,14 @@ public class UberSkool {
 		System.out.println("Welcome user " + firstName + " " + lastName + ls);
 		System.out.println("What can we do for you?");
 		System.out.println("0: Logout");
-		System.out.println("1: Reserve a car");
-		System.out.println("");
-		System.out.println("");
+		System.out.println("1: Record a reservation");
+		System.out.println("2: Record a ride");
+		System.out.println("3: Declare a favorite UC");
+		System.out.println("4: Rate user feedback");
+		System.out.println("5: Rate user");
+		System.out.println("6: Search for UC");
+		System.out.println("7: Degree of seperation from user");
+		System.out.println("8: Statistics");
 	}
 	
 	public static void driverMenu(){
@@ -101,6 +110,7 @@ public class UberSkool {
 				} else if (c == 1) {
 					if(loginState == LoginState.USERMENU) {
 						reserve(con, scanner);
+						userMenu();
 					}
 					loginState = LoginState.LOGGINGIN;
 					if(Login(con, scanner, false)) {
@@ -421,7 +431,6 @@ public class UberSkool {
 				}
 				else {
 					try {
-						System.out.println(String.format("phoneNumber: %s, loginName: %s, password: %s, firstName: %s, lastName: %s, address: %s", phoneNumber, loginName, password, firstName, lastName, address));
 						query = String.format("select * from UU where loginName = '%s' or phoneNumber = '%s'", loginName, phoneNumber);
 						ResultSet rs = con.stmt.executeQuery(query);
 						ResultSetMetaData rsmd = rs.getMetaData();
@@ -523,7 +532,132 @@ public class UberSkool {
 		else return true;
 	}
 	
-	public static void reserve(Connector2 con, Scanner scanner){
+	public static void recordRide(Connector2 con, Scanner scanner){
+		String cmd = "";
+		String query = "";
+		String date = "";
+		String time = "";
+		String dist = "";
+		String numOfPeople = "";
+		String car = "";
+		int cost = -1;
 		
+		while(true)
+		{
+			System.out.println(ls + "When would you like to reserve the vehicle? e.g.(YYYY-MM-DD)");
+			if((cmd = scanner.nextLine()).equals("0")) return;
+			else date = cmd;
+			
+			System.out.println(ls + "What time? e.g.(HH:MM)");
+			if((cmd = scanner.nextLine()).equals("0")) return;
+			else date = cmd;
+			
+			System.out.println(ls + "How far will you be going? (In Miles)");
+			if((cmd = scanner.nextLine()).equals("0")) return;
+			dist = cmd;
+			
+			System.out.println(ls + "How many people will be going?");
+			if((cmd = scanner.nextLine()).equals("0")) return;
+			numOfPeople = cmd;
+			
+			System.out.println(ls + "What UC would you like to reserve? Please enter VIN.");
+			if((cmd = scanner.nextLine()).equals("0")) return;
+			car = cmd;
+			
+			if(!checkRide(date, time, dist, numOfPeople, car)){
+				while(true) {
+					System.out.println(ls + "Would you like to try again? Y or N?");
+					if((cmd = scanner.nextLine()).equals("Y")) break;
+					else if(cmd.equals("0")) return;
+					else if(cmd.equals("N")) return;
+					else System.out.println(ls + "Not a valid option");
+				}
+				continue;
+			}
+			else {
+				//Check if driver available during that time and if
+			}
+		}
+	}
+	
+	public static boolean checkRide(String date, String time, String dist, String numOfPeople, String Car){
+		Boolean dateOkay = true;
+		Boolean timeOkay = true;
+		Boolean distOkay = true;
+		Boolean numOfPeopleOkay = true;
+		Boolean carOkay = true;
+		
+		if(!Pattern.matches("\\d{4}-\\d{2}-\\d{2}", date)) dateOkay = false;
+		if(!Pattern.matches("([01]?[0-9]|2[0-3]):[0-5][0-9]", time)) timeOkay = false;
+		try {
+		Integer.parseInt(dist);
+		}
+		catch(NumberFormatException e) {
+			distOkay = false;
+		}
+		try {
+			Integer.parseInt(numOfPeople);
+		}
+		catch(NumberFormatException e){
+			numOfPeopleOkay = false;
+		}
+		if(!Pattern.matches("^[a-zA-Z0-9]*$", date) || date.length() != 17) carOkay = false;
+		
+		if(!dateOkay) System.out.println("Please enter a date in this format: YYYY-MM-DD");
+		if(!timeOkay) System.out.println("Please enter a time in this format: HH:MM");
+		if(!distOkay) System.out.println("Please enter an integer for distance in miles");
+		if(!numOfPeopleOkay) System.out.println("Please enter an integer for the number of people");
+		if(!carOkay) System.out.println("Please enter an alphanumeric of length 17 for VIN");
+		
+		return false;
+	}
+	
+	public static void reserve(Connector2 con, Scanner scanner) {
+		String cmd = "";
+		String query = "";
+		String vin = "";
+		while(true)
+		{
+			System.out.println("Which car would you like to reserve? Please enter a VIN");
+			if((cmd = scanner.nextLine()).equals("0")) return;
+			else if(!Pattern.matches("^[a-zA-Z0-9]*$", cmd) || cmd.length() != 17) {
+				System.out.println(ls + "Please enter an alphanumeric of length 17 for VIN");
+				while(true) {
+					System.out.println(ls + "Would you like to try again? Y or N?");
+					if((cmd = scanner.nextLine()).equals("Y")) break;
+					else if(cmd.equals("0")) return;
+					else if(cmd.equals("N")) return;
+					else System.out.println(ls + "Not a valid option");
+				}
+				continue;
+			}
+			else{
+				vin = cmd;
+				try {	
+					query = String.format("INSERT INTO Reserves (VIN, loginName) VALUES ('%s', '%s')", vin, loginName);
+					con.stmt.executeUpdate(query);
+				}
+				catch (SQLException e) {
+					e.printStackTrace();
+					System.out.println(ls + "There was an issue adding your reservation" + ls);
+					while(true) {
+						System.out.println(ls + "Would you like to try again? Y or N?");
+						if((cmd = scanner.nextLine()).equals("Y")) break;
+						else if(cmd.equals("0")) return;
+						else if(cmd.equals("N")) return;
+						else System.out.println(ls + "Not a valid option");
+					}
+					continue;
+				}
+				
+				while(true) {
+					System.out.println(ls + "Would you like to try again? Y or N?");
+					if((cmd = scanner.nextLine()).equals("Y")) break;
+					else if(cmd.equals("0")) return;
+					else if(cmd.equals("N")) return;
+					else System.out.println(ls + "Not a valid option");
+				}
+			}
+		}
 	}
 }
