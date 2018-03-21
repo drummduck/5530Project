@@ -709,6 +709,10 @@ public class UberSkool {
 								query = String.format("INSERT INTO rides (dist, date, cost, numOfPeople, VIN, loginName) VALUES (%d, %s, %.2f, %d, %s, %s)", Integer.parseInt(dist), date + " " + time, Float.parseFloat(cost), Integer.parseInt(numOfPeople), vin, loginName);
 								try {
 									con.stmt.executeUpdate(query);
+									query = "SELECT tripID FROM Rides ORDER BY id DESC LIMIT 1;";
+									
+									ResultSet rs = con.stmt.executeQuery(query);
+									System.out.println("Your tripID is: " + rs.getString("tripID"));
 								} catch (SQLException e) {
 									rides.clear();
 									System.out.println(ls + "There was an issue adding your rides" + ls);
@@ -1328,6 +1332,83 @@ public class UberSkool {
 	}
 	
 	public static void declareFavorite(Connector2 con, Scanner scanner) {
-		
+		String cmd = "";
+		String query = "";
+		String vin = "";
+		while(true) {
+			System.out.println("What vehicle would you like to make your favorite? Please enter an alphanumerical value of length 17");
+			if((cmd = scanner.nextLine()).equals("0")) return;
+			else vin = cmd;
+			
+			if(!Pattern.matches("^[a-zA-Z0-9]*$", vin) || vin.length() != 17) {
+				System.out.println(ls + "Please enter an alphanumeric value with 17 characters for VIN" + ls + "Would you like to try again? Y or N?");
+				while(true) {
+					System.out.println(ls + "Would you like to try again? Y or N?");
+					if((cmd = scanner.nextLine()).equals("Y")) break;
+					else if(cmd.equals("0")) return;
+					else if(cmd.equals("N")) return;
+					else System.out.println(ls + "Not a valid option");
+				}
+				continue;
+			}
+			else {
+				query = String.format("Select * from UC where VIN = '%s'", vin);
+				try {
+					ResultSet rs = con.stmt.executeQuery(query);
+					ResultSetMetaData rsmd = rs.getMetaData();
+					if(!rs.next())
+					{
+						System.out.println(ls + "Vehicle does not exist");
+						while(true) {
+							System.out.println(ls + "Would you like to try again? Y or N?");
+							if((cmd = scanner.nextLine()).equals("Y")) break;
+							else if(cmd.equals("0")) return;
+							else if(cmd.equals("N")) return;
+							else System.out.println(ls + "Not a valid option");
+						}
+						continue;
+					}
+				}
+				catch(SQLException e) {
+					System.out.println(ls + "There was an issue with your vehicle lookup");
+					while(true) {
+						System.out.println(ls + "Would you like to try again? Y or N?");
+						if((cmd = scanner.nextLine()).equals("Y")) break;
+						else if(cmd.equals("0")) return;
+						else if(cmd.equals("N")) return;
+						else System.out.println(ls + "Not a valid option");
+					}
+					continue;
+				}
+				
+				query = String.format("Select * from Favorites where loginName = '%s'", loginName);
+				
+				try {
+					ResultSet rs = con.stmt.executeQuery(query);
+					ResultSetMetaData rsmd = rs.getMetaData();
+					if(!rs.next())
+					{
+						query = String.format("INSERT INTO Favorites (loginName, VIN) VALUES ('%s', '%s')", loginName, vin);
+						con.stmt.executeUpdate(query);
+					}
+					else {
+						query = String.format("UPDATE Favorites SET vin = '%s' where loginName = '%s'",vin, loginName);
+						con.stmt.executeQuery(query);
+					}
+				}
+				catch(SQLException e) {
+					System.out.println(ls + "There was an issue with your vehicle lookup or update");
+					while(true) {
+						System.out.println(ls + "Would you like to try again? Y or N?");
+						if((cmd = scanner.nextLine()).equals("Y")) break;
+						else if(cmd.equals("0")) return;
+						else if(cmd.equals("N")) return;
+						else System.out.println(ls + "Not a valid option");
+					}
+					continue;
+				}
+			}	
+			return;
+		}
 	}
 }
