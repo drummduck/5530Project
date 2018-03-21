@@ -57,9 +57,9 @@ public class UberSkool {
 	public static void driverMenu(){
 		System.out.println(ls + "Welcome driver " + firstName + " " + lastName + ls);
 		System.out.println("What can we do for you?");
-		System.out.println("");
-		System.out.println("");
-		System.out.println("");
+		System.out.println("0: Logout");
+		System.out.println("1: Register a new car");
+		System.out.println("2: Update car information");
 	}
 	
 	enum LoginState{
@@ -105,16 +105,22 @@ public class UberSkool {
 					continue;
 				}
 				else if (c == 0) {
-					if(loginState == LoginState.USERMENU) {
+					if(loginState == LoginState.USERMENU || loginState == LoginState.DRIVERMENU) {
 						clearUser();
 						displayMenu();
 						loginState = LoginState.MENU;
 					}
-					clearUser();
-					System.out.println("Good Bye");
-					return;
+					else {
+						clearUser();
+						System.out.println("Good Bye");
+						return;
+					}
 				} else if (c == 1) {
-					if(loginState == LoginState.USERMENU) {
+					if(loginState == LoginState.DRIVERMENU) {
+						registerCar(con, scanner);
+						driverMenu();
+					}
+					else if(loginState == LoginState.USERMENU) {
 						reserve(con, scanner);
 						userMenu();
 					}
@@ -131,16 +137,29 @@ public class UberSkool {
 						}
 					}
 				} else if (c == 2) {
-					if(Login(con, scanner, true)){
-						loginState = LoginState.DRIVERMENU;
+					if(loginState == LoginState.DRIVERMENU) {
+						updateCar(con,scanner);
 						driverMenu();
 					}
+					else if(loginState == LoginState.USERMENU) {
+						recordRides(con, scanner);
+						userMenu();
+					}
 					else {
-						clearUser();
-						loginState = LoginState.MENU;
-						displayMenu();
+						if(Login(con, scanner, true)){
+							loginState = LoginState.DRIVERMENU;
+							driverMenu();
+						}
+						else {
+							clearUser();
+							loginState = LoginState.MENU;
+							displayMenu();
+						}
 					}
 				} else if(c == 3){
+					if(loginState == LoginState.USERMENU) {
+						
+					}
 					if(!register(con, scanner, false)) {
 						clearUser();
 						loginState = LoginState.MENU;
@@ -172,7 +191,6 @@ public class UberSkool {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
 			System.err.println("Either connection error or query execution error!");
 		} finally {
 			if (con != null) {
@@ -327,12 +345,26 @@ public class UberSkool {
 						} else return false;
 						
 					} catch (IOException e) {
-						//Put error
-						e.printStackTrace();
-					} catch (SQLException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+						System.out.println(ls + "There was an issue registering your user" + ls);
+						while(true) {
+							System.out.println(ls + "Would you like to try again? Y or N?");
+							if((cmd = scanner.nextLine()).equals("Y")) break;
+							else if(cmd.equals("0")) return false;
+							else if(cmd.equals("N")) return false;
+							else System.out.println(ls + "Not a valid option");
+						}
+						continue;					
+					}	 catch (SQLException e) {
+							System.out.println(ls + "There was an issue registering your user" + ls);
+							while(true) {
+								System.out.println(ls + "Would you like to try again? Y or N?");
+								if((cmd = scanner.nextLine()).equals("Y")) break;
+								else if(cmd.equals("0")) return false;
+								else if(cmd.equals("N")) return false;
+								else System.out.println(ls + "Not a valid option");
+							}
+							continue;					
+						}
 				}
 				else if(cmd.equals("N")){
 					System.out.println(ls +"Please enter a login name you would like to use. (must have at least one character that isn't a number)");
@@ -486,7 +518,6 @@ public class UberSkool {
 						}	
 					}
 					catch (SQLException e) {
-						e.printStackTrace();
 						System.out.println(ls + "There was an issue adding your user" + ls);
 						while(true) {
 							System.out.println(ls + "Would you like to try again? Y or N?");
@@ -546,39 +577,46 @@ public class UberSkool {
 		else return true;
 	}
 	
-	public static void recordRide(Connector2 con, Scanner scanner){
+	public static void recordRides(Connector2 con, Scanner scanner){
 		String cmd = "";
 		String query = "";
 		String date = "";
 		String time = "";
 		String dist = "";
 		String numOfPeople = "";
-		String car = "";
-		int cost = -1;
+		Boolean tryAgain = false;
+		String vin = "";
+		String cost = "";
+		ArrayList<Ride> rides = new ArrayList<Ride>();
+		
 		
 		while(true)
 		{
-			System.out.println(ls + "When would you like to reserve the vehicle? e.g.(YYYY-MM-DD)");
+			System.out.println(ls + "What was the date of your ride? e.g.(YYYY-MM-DD)");
 			if((cmd = scanner.nextLine()).equals("0")) return;
 			else date = cmd;
 			
-			System.out.println(ls + "What time? e.g.(HH:MM)");
+			System.out.println(ls + "What was the time? e.g.(HH:MM)");
 			if((cmd = scanner.nextLine()).equals("0")) return;
-			else date = cmd;
+			else time = cmd;
 			
-			System.out.println(ls + "How far will you be going? (In Miles)");
+			System.out.println(ls + "How much did it cost? e.g.(12.50)");
+			if((cmd = scanner.nextLine()).equals("0")) return;
+			cost = cmd;
+			
+			System.out.println(ls + "How far did you go? (In Miles)");
 			if((cmd = scanner.nextLine()).equals("0")) return;
 			dist = cmd;
 			
-			System.out.println(ls + "How many people will be going?");
+			System.out.println(ls + "How many people went?");
 			if((cmd = scanner.nextLine()).equals("0")) return;
 			numOfPeople = cmd;
 			
-			System.out.println(ls + "What UC would you like to reserve? Please enter VIN.");
+			System.out.println(ls + "What UC did you ride with? (alphanumeric of length 17).");
 			if((cmd = scanner.nextLine()).equals("0")) return;
-			car = cmd;
+			vin = cmd;
 			
-			if(!checkRide(date, time, dist, numOfPeople, car)){
+			if(!checkRide(date, time, dist, cost, numOfPeople, vin)){
 				while(true) {
 					System.out.println(ls + "Would you like to try again? Y or N?");
 					if((cmd = scanner.nextLine()).equals("Y")) break;
@@ -589,17 +627,133 @@ public class UberSkool {
 				continue;
 			}
 			else {
-				//Check if driver available during that time and if
+				try {
+					query = String.format("select * from UC where VIN = '%s' or date = '%s'", vin);
+					ResultSet rs = con.stmt.executeQuery(query);
+					ResultSetMetaData rsmd = rs.getMetaData();
+					if(!rs.next()) { 
+						System.out.println(ls + "Vehicle does not exist");
+						while(true) {
+							System.out.println(ls + "Would you like to try again? Y or N?");
+							if((cmd = scanner.nextLine()).equals("Y")) break;
+							else if(cmd.equals("0")) return;
+							else if(cmd.equals("N")) return;
+							else System.out.println(ls + "Not a valid option");
+						}
+						continue;
+					}
+					query = String.format("select * from Rides where date = '%s' AND VIN = '%s'", date + " " + time, vin);
+					rs = con.stmt.executeQuery(query);
+					rsmd = rs.getMetaData();
+					if(!rs.next()) { 
+						System.out.println(ls + "A ride with that vehicle was already recorded at this time");
+						while(true) {
+							System.out.println(ls + "Would you like to try again? Y or N?");
+							if((cmd = scanner.nextLine()).equals("Y")) break;
+							else if(cmd.equals("0")) return;
+							else if(cmd.equals("N")) return;
+							else System.out.println(ls + "Not a valid option");
+						}
+						continue;
+					}
+					query = String.format("select c.ID, d.ID, h.start, h.end from UC c, UD d, hours_Of_Operation h where c.VIN = '%s' AND c.ID = d.ID AND d.ID = h.ID AND h.start <= '%s' AND h.end >= '%s'", vin, time, time);
+					rs = con.stmt.executeQuery(query);
+					rsmd = rs.getMetaData();
+					if(!rs.next()) { 
+						System.out.println(ls + "A UC is not available during that time");
+						while(true) {
+							System.out.println(ls + "Would you like to try again? Y or N?");
+							if((cmd = scanner.nextLine()).equals("Y")) break;
+							else if(cmd.equals("0")) return;
+							else if(cmd.equals("N")) return;
+							else System.out.println(ls + "Not a valid option");
+						}
+						continue;
+					}
+				}
+				catch (SQLException e) {
+					System.out.println(ls + "There was an issue adding your ride" + ls);
+					while(true) {
+						System.out.println(ls + "Would you like to try again? Y or N?");
+						if((cmd = scanner.nextLine()).equals("Y")) break;
+						else if(cmd.equals("0")) return;
+						else if(cmd.equals("N")) return;
+						else System.out.println(ls + "Not a valid option");
+					}
+					continue;
+				}
+				rides.add(new Ride(dist, date, cost, numOfPeople, vin));
+				while(true) {
+					System.out.println(ls + "Would you like to add another ride? Y or N?");
+					if((cmd = scanner.nextLine()).equals("Y")) break;
+					else if(cmd.equals("0")) return;
+					else if(cmd.equals("N")) {
+						if(rides.isEmpty()) return;
+						else if(!approveRides(rides, scanner)) {
+							rides.clear();
+							while(true) {
+								System.out.println(ls + "Would you like to try adding rides again? Y or N?");
+								if((cmd = scanner.nextLine()).equals("Y")) {
+									tryAgain = true;
+									break;
+								}
+								else if(cmd.equals("0")) return;
+								else if(cmd.equals("N")) return;
+								else System.out.println(ls + "Not a valid option");
+							}
+							if(tryAgain) break;
+						}
+						else {
+							for(Ride r: rides) {
+								query = String.format("INSERT INTO rides (dist, date, cost, numOfPeople, VIN, loginName) VALUES (%d, %s, %.2f, %d, %s, %s)", Integer.parseInt(dist), date + " " + time, Float.parseFloat(cost), Integer.parseInt(numOfPeople), vin, loginName);
+								try {
+									con.stmt.executeUpdate(query);
+								} catch (SQLException e) {
+									rides.clear();
+									System.out.println(ls + "There was an issue adding your rides" + ls);
+									while(true) {
+										System.out.println(ls + "Would you like to try adding rides again? Y or N?");
+										if((cmd = scanner.nextLine()).equals("Y")) {
+											tryAgain = true;
+											break;
+										}
+										else if(cmd.equals("0")) return;
+										else if(cmd.equals("N")) return;
+										else System.out.println(ls + "Not a valid option");
+									}
+									if(tryAgain) break;
+								}
+							}
+						}
+					}
+					else System.out.println(ls + "Not a valid option");
+				}
+				continue;
 			}
 		}
 	}
 	
-	public static boolean checkRide(String date, String time, String dist, String numOfPeople, String Car){
+	public static boolean approveRides(ArrayList<Ride> rides, Scanner scanner) {
+		String cmd = "";
+		System.out.println(ls + "These are your rides:");
+		for(Ride r: rides) System.out.println(r.toString());
+
+		while(true) {
+			System.out.println(ls + "Do these look okay to you? Y or N?");
+			if((cmd = scanner.nextLine()).equals("Y")) return true;
+			else if(cmd.equals("0")) return false;
+			else if(cmd.equals("N")) return false;
+			else System.out.println(ls + "Not a valid option");
+		}
+	}
+	
+	public static boolean checkRide(String date, String time, String dist, String cost, String numOfPeople, String Car){
 		Boolean dateOkay = true;
 		Boolean timeOkay = true;
 		Boolean distOkay = true;
 		Boolean numOfPeopleOkay = true;
 		Boolean carOkay = true;
+		Boolean costOkay = true;
 		
 		if(!Pattern.matches("\\d{4}-\\d{2}-\\d{2}", date)) dateOkay = false;
 		if(!Pattern.matches("([01]?[0-9]|2[0-3]):[0-5][0-9]", time)) timeOkay = false;
@@ -615,9 +769,17 @@ public class UberSkool {
 		catch(NumberFormatException e){
 			numOfPeopleOkay = false;
 		}
-		if(!Pattern.matches("^[a-zA-Z0-9]*$", date) || date.length() != 17) carOkay = false;
+		try {
+			Float.parseFloat(cost);
+		}
+		catch(NumberFormatException e) {
+			costOkay = false;
+		}
+		if(!Pattern.matches("\\d{1,3}[,\\.]?(\\d{1,2})?", time)) timeOkay = false;
 		
-		if(!dateOkay) System.out.println("Please enter a date in this format: YYYY-MM-DD");
+		if(!Pattern.matches("^[a-zA-Z0-9]*$", date) || date.length() != 17) carOkay = false;
+		if(!costOkay) System.out.println("Please enter a dollar amount format e.g.(12.50)");
+ 		if(!dateOkay) System.out.println("Please enter a date in this format: YYYY-MM-DD");
 		if(!timeOkay) System.out.println("Please enter a time in this format: HH:MM");
 		if(!distOkay) System.out.println("Please enter an integer for distance in miles");
 		if(!numOfPeopleOkay) System.out.println("Please enter an integer for the number of people");
@@ -691,7 +853,7 @@ public class UberSkool {
 					}
 				}
 				catch (SQLException e) {
-					e.printStackTrace();
+					reservations.clear();
 					System.out.println(ls + "There was an issue adding your reservation" + ls);
 					while(true) {
 						System.out.println(ls + "Would you like to try again? Y or N?");
@@ -717,7 +879,7 @@ public class UberSkool {
 							}
 							else {
 								while(true) {
-									System.out.println(ls + "Would you like to try again? Y or N?");
+									System.out.println(ls + "Would you like to try adding reservations again? Y or N?");
 									if((cmd = scanner.nextLine()).equals("Y")) break;
 									else if(cmd.equals("0")) return;
 									else if(cmd.equals("N")) return;
@@ -741,12 +903,11 @@ public class UberSkool {
 					}
 				}
 				catch (SQLException e) {
-					e.printStackTrace();
+					reservations.clear();
 					System.out.println(ls + "There was an issue adding your reservations" + ls);
 					while(true) {
 						System.out.println(ls + "Would you like to try again? Y or N?");
 						if((cmd = scanner.nextLine()).equals("Y")) {
-							reservations.clear();
 							break;
 						}
 						else if(cmd.equals("0")) return;
@@ -757,8 +918,8 @@ public class UberSkool {
 				}
 			}
 				
-			}
 		}
+	}
 	
 	public static boolean reserveCheck(String date, String time, String vin){
 		Boolean dateOkay = true;
@@ -789,5 +950,383 @@ public class UberSkool {
 			else if(cmd.equals("N")) return false;
 			else System.out.println(ls + "Not a valid option");
 		}
+	}
+	
+	public static void registerCar(Connector2 con, Scanner scanner) {
+		String cmd = "";
+		String query = "";
+		String vin = "";
+		String category = "";
+		String make = "";
+		String model = "";
+		String year = "";
+		
+		while(true) {
+			System.out.println(ls + "What is the VIN of your vehicle?");
+			if((cmd = scanner.nextLine()).equals("0")) return;
+			else vin = cmd;
+			
+			System.out.println(ls + "What is the category of your vehicle? (economy, confort, or luxury)");
+			if((cmd = scanner.nextLine()).equals("0")) return;
+			else category = cmd;
+			
+			System.out.println(ls + "What is the make of your vehicle?");
+			if((cmd = scanner.nextLine()).equals("0")) return;
+			else make = cmd;
+			
+			System.out.println(ls + "What is the model of your vehicle?");
+			if((cmd = scanner.nextLine()).equals("0")) return;
+			else model = cmd;
+			
+			System.out.println(ls + "What is the year of your vehicle?");
+			if((cmd = scanner.nextLine()).equals("0")) return;
+			else year = cmd;
+			
+			if(!checkCarRegistration(scanner, vin, category, year)) {
+				while(true) {
+					System.out.println(ls + "Would you like to try again? Y or N?");
+					if((cmd = scanner.nextLine()).equals("Y")) break;
+					else if(cmd.equals("0")) return;
+					else if(cmd.equals("N")) return;
+					else System.out.println(ls + "Not a valid option");
+				}
+				continue;
+			}
+			else {
+				query = String.format("select * from UC where VIN = '%s'", vin);
+				ResultSet rs;
+				try {
+					rs = con.stmt.executeQuery(query);
+					ResultSetMetaData rsmd = rs.getMetaData();
+					if(rs.next()) { 
+						System.out.println(ls + "Vehicle already exists");
+						while(true) {
+							System.out.println(ls + "Would you like to try again? Y or N?");
+							if((cmd = scanner.nextLine()).equals("Y")) break;
+							else if(cmd.equals("0")) return;
+							else if(cmd.equals("N")) return;
+							else System.out.println(ls + "Not a valid option");
+						}
+					}
+				}
+				catch(SQLException e) {
+					System.out.println(ls + "There was an issue registering your vehicle" + ls);
+					while(true) {
+						System.out.println(ls + "Would you like to try again? Y or N?");
+						if((cmd = scanner.nextLine()).equals("Y")) {
+							break;
+						}
+						else if(cmd.equals("0")) return;
+						else if(cmd.equals("N")) return;
+						else System.out.println(ls + "Not a valid option");
+					}
+					continue;
+				}
+				query = String.format("INSERT INTO UC (VIN, ID, category, make, model, year) VALUES (%s, %s, %s, %s, %s, %d", vin, ID, category, make, model, Integer.parseInt(year));
+				try {
+					 con.stmt.executeUpdate(query);
+				}
+				catch(SQLException e) {
+					System.out.println(ls + "There was an issue registering your vehicle" + ls);
+					while(true) {
+						System.out.println(ls + "Would you like to try again? Y or N?");
+						if((cmd = scanner.nextLine()).equals("Y")) {
+							break;
+						}
+						else if(cmd.equals("0")) return;
+						else if(cmd.equals("N")) return;
+						else System.out.println(ls + "Not a valid option");
+					}
+					continue;
+				}
+			}
+		}
+	}
+	
+	public static boolean checkCarRegistration(Scanner scanner, String vin, String category, String year) {
+		Boolean vinOkay = true;
+		Boolean categoryOkay = true;
+		Boolean yearOkay = true;
+		
+		if(!Pattern.matches("^[a-zA-Z0-9]*$", vin) || vin.length() != 17) vinOkay = false;
+		if(!category.equalsIgnoreCase("economy") && !category.equalsIgnoreCase("comfort") && !category.equalsIgnoreCase("luxury")) categoryOkay = false;
+		try {
+			Integer.parseInt(year);
+		}
+		catch(NumberFormatException e){
+			yearOkay = false;
+		}
+		
+		if(!vinOkay) System.out.println("Please enter an alphanumeric value with 17 characters for VIN");
+		if(!categoryOkay) System.out.println("Please enter economy, comfort, or luxury");
+		if(!yearOkay) System.out.println("Please enter a valid year e.g.(1991");
+		
+		if(!vinOkay || !categoryOkay || !yearOkay) return false;
+		
+		return true;
+	}
+	
+	public static void updateCar(Connector2 con, Scanner scanner) {
+		String cmd = "";
+		String query = "";
+		String vin = "";
+		while(true) {
+			System.out.println(ls + "What vehicle would you like to update information on?");
+			if((cmd = scanner.nextLine()).equals("0")) return;
+			else vin = cmd;
+			if(!Pattern.matches("^[a-zA-Z0-9]*$", vin) || vin.length() != 17) {
+				System.out.println(ls + "Please enter an alphanumeric value with 17 characters for VIN" + ls + "Would you like to try again? Y or N?");
+				while(true) {
+					System.out.println(ls + "Would you like to try again? Y or N?");
+					if((cmd = scanner.nextLine()).equals("Y")) break;
+					else if(cmd.equals("0")) return;
+					else if(cmd.equals("N")) return;
+					else System.out.println(ls + "Not a valid option");
+				}
+				continue;
+			}
+			else {
+				query = String.format("Select * from UC where ID = %s AND VIN = %s", ID, vin);
+				try {
+					ResultSet rs = con.stmt.executeQuery(query);
+					ResultSetMetaData rsmd = rs.getMetaData();
+					if(!rs.next()) { 
+						System.out.println(ls + "Vehicle does not exist or does not belong to you");
+						while(true) {
+							System.out.println(ls + "Would you like to try again? Y or N?");
+							if((cmd = scanner.nextLine()).equals("Y")) break;
+							else if(cmd.equals("0")) return;
+							else if(cmd.equals("N")) return;
+							else System.out.println(ls + "Not a valid option");
+						}
+						continue;
+					}
+				}
+				catch(SQLException e) {
+					System.out.println(ls + "There was an issue with your vehicle lookup");
+					while(true) {
+						System.out.println(ls + "Would you like to try again? Y or N?");
+						if((cmd = scanner.nextLine()).equals("Y")) break;
+						else if(cmd.equals("0")) return;
+						else if(cmd.equals("N")) return;
+						else System.out.println(ls + "Not a valid option");
+					}
+					continue;
+				}
+		
+				System.out.println("What information would you like to modify on it today?");
+				System.out.println("1: VIN");
+				System.out.println("2: Category");
+				System.out.println("3: Make");
+				System.out.println("4: Model");
+				System.out.println("5: Year");
+				cmd = scanner.nextLine();
+				switch(cmd) {
+					case("0"): return;
+					case("VIN"):{
+						String newVin = "";
+						System.out.println(ls + "What would you like to change your VIN to?");
+						if((cmd = scanner.nextLine()).equals("0")) return;
+						else newVin = cmd;
+						if(!Pattern.matches("^[a-zA-Z0-9]*$", vin) || vin.length() != 17) {
+							System.out.println(ls + "Please enter an alphanumeric value with 17 characters for VIN" + ls);
+							while(true) {
+								System.out.println(ls + "Would you like to try again? Y or N?");
+								if((cmd = scanner.nextLine()).equals("Y")) break;
+								else if(cmd.equals("0")) return;
+								else if(cmd.equals("N")) return;
+								else System.out.println(ls + "Not a valid option");
+							}
+							continue;
+						}
+						else {
+							query = String.format("Select * from UC where VIN = '%s'", newVin);
+							try {
+								ResultSet rs = con.stmt.executeQuery(query);
+								ResultSetMetaData rsmd = rs.getMetaData();
+								if(rs.next()) { 
+									System.out.println(ls + "Vehicle exists already");
+									while(true) {
+										System.out.println(ls + "Would you like to try again? Y or N?");
+										if((cmd = scanner.nextLine()).equals("Y")) break;
+										else if(cmd.equals("0")) return;
+										else if(cmd.equals("N")) return;
+										else System.out.println(ls + "Not a valid option");
+									}
+									continue;
+								}
+							}
+							catch(SQLException e) {
+								System.out.println(ls + "There was an issue with your vehicle update");
+								while(true) {
+									System.out.println(ls + "Would you like to try again? Y or N?");
+									if((cmd = scanner.nextLine()).equals("Y")) break;
+									else if(cmd.equals("0")) return;
+									else if(cmd.equals("N")) return;
+									else System.out.println(ls + "Not a valid option");
+								}
+								continue;
+							}
+							
+							query = String.format("UPDATE UC SET VIN = '%s' where VIN = '%s'", newVin, vin);
+							try {
+								con.stmt.executeUpdate(query);
+							}
+							catch(SQLException e) {
+								System.out.println(ls + "There was an issue with your vehicle update");
+								while(true) {
+									System.out.println(ls + "Would you like to try again? Y or N?");
+									if((cmd = scanner.nextLine()).equals("Y")) break;
+									else if(cmd.equals("0")) return;
+									else if(cmd.equals("N")) return;
+									else System.out.println(ls + "Not a valid option");
+								}
+								continue;
+							}
+						}
+						break;
+					}
+					case("Category"):{
+						String category = "";
+						System.out.println(ls + "What would you like to change your Category to?");
+						if((cmd = scanner.nextLine()).equals("0")) return;
+						else category = cmd;
+						if(!category.equalsIgnoreCase("economy") && !category.equalsIgnoreCase("comfort") && !category.equalsIgnoreCase("luxury")) {
+							System.out.println("Please enter economy, comfort, or luxury");
+							while(true) {
+								System.out.println(ls + "Would you like to try again? Y or N?");
+								if((cmd = scanner.nextLine()).equals("Y")) break;
+								else if(cmd.equals("0")) return;
+								else if(cmd.equals("N")) return;
+								else System.out.println(ls + "Not a valid option");
+							}
+							continue;
+						}
+						else {
+							query = String.format("UPDATE UC SET category = '%s' where VIN = '%s'", category, vin);
+							try {
+								con.stmt.executeUpdate(query);
+							}
+							catch(SQLException e) {
+								System.out.println(ls + "There was an issue with your vehicle update");
+								while(true) {
+									System.out.println(ls + "Would you like to try again? Y or N?");
+									if((cmd = scanner.nextLine()).equals("Y")) break;
+									else if(cmd.equals("0")) return;
+									else if(cmd.equals("N")) return;
+									else System.out.println(ls + "Not a valid option");
+								}
+								continue;
+							}
+						}
+						
+						break;
+					}
+					case("Make"):{
+						String make = "";
+						System.out.println(ls +"What would you like to change your Make to?");
+						if((cmd = scanner.nextLine()).equals("0")) return;
+						else make = cmd;
+						query = String.format("UPDATE UC SET make = '%s' where VIN = '%s'", make, vin);
+						try {
+							con.stmt.executeUpdate(query);
+						}
+						catch(SQLException e) {
+							System.out.println(ls + "There was an issue with your vehicle update");
+							while(true) {
+								System.out.println(ls + "Would you like to try again? Y or N?");
+								if((cmd = scanner.nextLine()).equals("Y")) break;
+								else if(cmd.equals("0")) return;
+								else if(cmd.equals("N")) return;
+								else System.out.println(ls + "Not a valid option");
+							}
+							continue;
+						}
+						break;
+					}
+					case("Model"):{
+						String model = "";
+						System.out.println(ls +"What would you like to change your Model to?");
+						if((cmd = scanner.nextLine()).equals("0")) return;
+						else model = cmd;
+						query = String.format("UPDATE UC SET model = '%s' where VIN = '%s'", model, vin);
+						try {
+							con.stmt.executeUpdate(query);
+						}
+						catch(SQLException e) {
+							System.out.println(ls + "There was an issue with your vehicle update");
+							while(true) {
+								System.out.println(ls + "Would you like to try again? Y or N?");
+								if((cmd = scanner.nextLine()).equals("Y")) break;
+								else if(cmd.equals("0")) return;
+								else if(cmd.equals("N")) return;
+								else System.out.println(ls + "Not a valid option");
+							}
+							continue;
+						}
+						break;
+					}
+					case("Year"):{
+						String year = "";
+						System.out.println(ls +"What would you like to change your Year to?");
+						if((cmd = scanner.nextLine()).equals("0")) return;
+						else year = cmd;
+						try {
+							Integer.parseInt(year);
+						}
+						catch(NumberFormatException e){
+							System.out.println("Please enter a valid year e.g.(1991");
+							while(true) {
+								System.out.println(ls + "Would you like to try again? Y or N?");
+								if((cmd = scanner.nextLine()).equals("Y")) break;
+								else if(cmd.equals("0")) return;
+								else if(cmd.equals("N")) return;
+								else System.out.println(ls + "Not a valid option");
+							}
+							continue;
+						}
+						query = String.format("UPDATE UC SET year = %d where VIN = '%s'", year, vin);
+						try {
+							con.stmt.executeUpdate(query);
+						}
+						catch(SQLException e) {
+							System.out.println(ls + "There was an issue with your vehicle update");
+							while(true) {
+								System.out.println(ls + "Would you like to try again? Y or N?");
+								if((cmd = scanner.nextLine()).equals("Y")) break;
+								else if(cmd.equals("0")) return;
+								else if(cmd.equals("N")) return;
+								else System.out.println(ls + "Not a valid option");
+							}
+							continue;
+						}
+					
+						break;
+					}
+					default:{
+						System.out.println("Not a valid option");
+						while(true) {
+							System.out.println(ls + "Would you like to try again? Y or N?");
+							if((cmd = scanner.nextLine()).equals("Y")) break;
+							else if(cmd.equals("0")) return;
+							else if(cmd.equals("N")) return;
+							else System.out.println(ls + "Not a valid option");
+						}
+						continue;					
+					}
+				}
+				while(true) {
+					System.out.println(ls + "Would you like to make another change? Y or N?");
+					if((cmd = scanner.nextLine()).equals("Y")) break;
+					else if(cmd.equals("0")) return;
+					else if(cmd.equals("N")) return;
+					else System.out.println(ls + "Not a valid option");
+				}			
+			}
+		}
+	}
+	
+	public static void declareFavorite(Connector2 con, Scanner scanner) {
+		
 	}
 }
