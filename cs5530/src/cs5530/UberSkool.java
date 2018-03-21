@@ -158,7 +158,8 @@ public class UberSkool {
 					}
 				} else if(c == 3){
 					if(loginState == LoginState.USERMENU) {
-						
+						declareFavorite(con, scanner);
+						userMenu();
 					}
 					if(!register(con, scanner, false)) {
 						clearUser();
