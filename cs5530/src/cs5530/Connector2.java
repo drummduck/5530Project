@@ -7,7 +7,6 @@ import java.sql.Statement;
 
 import com.jcraft.jsch.JSch; // YOU'LL NEED jsch-0.1.54.jar
 import com.jcraft.jsch.Session;
-
 public class Connector2
 {
 	public Statement stmt;
@@ -26,11 +25,11 @@ public class Connector2
 		int rport = 3306;
 
 		// ?allowMultiQueryies=true this allows for multiple queries to be sent in one string // YOU MAY NOT WANT THIS FUNCTIONALITY
-		String url = "jdbc:mysql://localhost:" + lport + "/ 5530db09?allowMultiQueries=true";
+		//String url = "georgia.eng.utah.edu/5530db09";
+		String url = "jdbc:mysql://localhost:" + lport + "/5530db09?allowMultiQueries=true";
 		String dbUser = "5530u09";
 		String dbPassword = "al282q2s";
 		String driverName = "com.mysql.jdbc.Driver";
-
 		try
 		{
 			// Set StrictHostKeyChecking property to no to avoid UnknownHostKey
