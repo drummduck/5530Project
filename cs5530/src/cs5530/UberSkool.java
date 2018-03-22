@@ -313,9 +313,13 @@ public class UberSkool {
 	public static boolean register(Connector2 con, Scanner scanner, Boolean driver) {
 		String cmd = "";
 		String query = "";
+		ArrayList<String> hours;
 		Boolean loginCheck = false;
 		Boolean passwordCheck = false;
+		Boolean tryAgain = false;
+
 		while(true) {
+			tryAgain = false;
 			if(driver) {
 				System.out.println(ls +"Do you already have a user account you would like to register as a driver? Y or N?");
 				if((cmd = scanner.nextLine()).equals("Y")) {
@@ -333,14 +337,57 @@ public class UberSkool {
 								else if(cmd.equals("N")) return false;
 							}
 							else {
+								if((hours = setHours(con, scanner)).isEmpty()) {
+									System.out.println(ls + "You must add hours to register as a driver" + ls);
+									while(true) {
+										System.out.println(ls + "Would you like to try again? Y or N?");
+										if((cmd = scanner.nextLine()).equals("Y")) break;
+										else if(cmd.equals("0")) return false;
+										else if(cmd.equals("N")) return false;
+										else System.out.println(ls + "Not a valid option");
+									}
+									continue;					
+								}
+								
+								for(String s: hours) {
+									String startTime = "";
+									String endTime = "";
+									
+									startTime = s.substring(0,4);
+									endTime = s.substring(6);
+									query = String.format("INSERT INTO hours_Of_Operation (start, end, ID) VALUES ('%s', '%s', %d", startTime, endTime, ID);
+									
+									try {
+										con.stmt.executeUpdate(query);
+									}
+									catch(SQLException e){
+										System.out.println(ls + "There was an issue adding your hours" + ls);
+										while(true) {
+											System.out.println(ls + "Would you like to try again? Y or N?");
+											if((cmd = scanner.nextLine()).equals("Y")) {
+												tryAgain = true;
+												break;
+											}
+											else if(cmd.equals("0")) return false;
+											else if(cmd.equals("N")) return false;
+											else System.out.println(ls + "Not a valid option");
+										}
+										break;	
+									}
+									
+								}
+								
+								if(tryAgain) continue;
+								
 								query = String.format("insert into UD (address, phoneNumber, firstName, lastName, loginName, password) values ('%s', '%s', '%s', '%s', '%s', '%s')",
 										address, phoneNumber, firstName, lastName, loginName, password);
-								con.stmt.executeQuery(query);
+								con.stmt.executeUpdate(query);
 								query = String.format("select * from UD where loginName = %s", loginName);
 								rs = con.stmt.executeQuery(query);
 								rsmd = rs.getMetaData();
 								ID = rs.getInt("ID");
 								System.out.println("Your driver ID is " + ID);
+								
 								return true;
 							}		
 						} else return false;
@@ -593,6 +640,7 @@ public class UberSkool {
 		
 		while(true)
 		{
+			tryAgain = false;
 			System.out.println(ls + "What was the date of your ride? e.g.(YYYY-MM-DD)");
 			if((cmd = scanner.nextLine()).equals("0")) return;
 			else date = cmd;
@@ -803,6 +851,7 @@ public class UberSkool {
 		ArrayList<String> reservations = new ArrayList<String>();
 		while(true)
 		{
+			approved = false;
 			System.out.println(ls + "What is the date of this reservation? e.g.(YYYY-MM-DD)");
 			if((cmd = scanner.nextLine()).equals("0")) return;
 			else date = cmd;
@@ -1410,5 +1459,158 @@ public class UberSkool {
 			}	
 			return;
 		}
+	}
+	
+	public static ArrayList<String> setHours(Connector2 con,Scanner scanner) {
+		String cmd = "";
+		String query = "";
+		String timeStart = "";
+		String timeEnd = "";
+		ArrayList<String> times = new ArrayList<String>();
+		
+		while(true) {
+			System.out.println("You must set your work hours to register. What time can you start? e.g.(HH:MM");
+			if((cmd = scanner.nextLine()).equals("0")) {
+				times.clear();
+				return times;
+			}
+			else timeStart = cmd;
+			
+			System.out.println("What time do you want to end your shift? e.g.(HH:MM");
+			if((cmd = scanner.next()).equals("0")) {
+				times.clear();
+				return times;
+			}
+			else timeEnd = cmd;
+			
+			if(!checkHours(timeStart, timeEnd, times)) {
+				while(true) {
+					System.out.println(ls + "Would you like to try adding another time slot? Y or N?");
+					if((cmd = scanner.nextLine()).equals("Y")) break;
+					else if(cmd.equals("0")) {
+						times.clear();
+						return times;
+					}
+					else if(cmd.equals("N")) return times;
+					else System.out.println(ls + "Not a valid option");
+				}
+				continue;
+			}
+			
+			times.add(timeStart + " " + timeEnd);
+			
+			while(true) {
+				System.out.println(ls + "Would you like to add another time slot? Y or N?");
+				if((cmd = scanner.nextLine()).equals("Y")) break;
+				else if(cmd.equals("0")) {
+					times.clear();
+					return times;
+				}
+				else if(cmd.equals("N")) return times;
+				else System.out.println(ls + "Not a valid option");
+			}
+			continue;
+		}
+	}
+	
+	private static Boolean checkHours(String startTime, String endTime, ArrayList<String> times) {
+		Boolean startTimeOkay = true;
+		Boolean endTimeOkay = true;
+		String startHour = "";
+		String endHour = "";
+		String startMinute = "";
+		String endMinute = "";
+		int startH = 0;
+		int startM = 0;
+		int endH = 0;
+		int endM = 0;
+		
+		if(!Pattern.matches("([01]?[0-9]|2[0-3]):[0-5][0-9]", startTime)) startTimeOkay = false;
+		if(!Pattern.matches("([01]?[0-9]|2[0-3]):[0-5][0-9]", endTime)) endTimeOkay = false;
+		
+		if(!startTimeOkay) System.out.println(ls + "Please enter a starting time in this format: HH:MM");
+		if(!endTimeOkay) System.out.println("Please enter an ending time in this format: HH:MM");
+		
+		if(!startTimeOkay || !endTimeOkay) return false;
+		
+		if(startTime.substring(0,1).startsWith("0")) startHour = startTime.substring(1,1);
+		else startHour = startTime.substring(0,1);
+		
+		if(startTime.substring(3,4).startsWith("0")) startMinute = startTime.substring(4,4);
+		else startMinute = startTime.substring(3,4);
+		
+		if(endTime.substring(0,1).startsWith("0")) startHour = endTime.substring(1,1);
+		else startHour = startTime.substring(0,1);
+		
+		if(endTime.substring(3,4).startsWith("0")) startMinute = endTime.substring(4,4);
+		else startMinute = endTime.substring(3,4);
+		
+		startH = Integer.parseInt(startHour);
+		startM = Integer.parseInt(startMinute);
+		
+		endH = Integer.parseInt(endHour); 
+		endM = Integer.parseInt(endMinute);
+		
+		if(startH > endH){
+			System.out.println(ls + "Your starting time cannot be greater than your ending time");
+			return false;
+		}
+		else if(startH == endH){
+			if(startM >= endM) {
+				System.out.println(ls + "Your starting time cannot be greater than your ending time");
+				return false;
+			}
+		}
+		
+		if(times.isEmpty()) return true;
+		
+		for(String s: times) {
+			String sHourStart = "";
+			String sMinStart = "";
+			String sHourEnd = "";
+			String sMinEnd = "";
+			int sHStart = 0;
+			int sHEnd = 0;
+			int sMStart = 0;
+			int sMEnd = 0;
+			
+			if(s.substring(0,1).startsWith("0")) sHourStart = s.substring(1,1);
+			else sHourStart = startTime.substring(0,1);
+			
+			if(s.substring(3,4).startsWith("0")) sMinStart = s.substring(4,4);
+			else sMinStart = s.substring(3,4);
+			
+			if(s.substring(6,7).startsWith("0")) sHourEnd = s.substring(7,7);
+			else sHourEnd = startTime.substring(6,7);
+			
+			if(s.substring(9,10).startsWith("0")) sMinEnd = s.substring(9,10);
+			else sMinEnd = s.substring(9,10);
+			
+			sHStart = Integer.parseInt(sHourStart);
+			sHEnd = Integer.parseInt(sHourEnd);
+			sMStart = Integer.parseInt(sMinStart);
+			sMEnd = Integer.parseInt(sMinEnd);
+			
+			if(startH > sHStart && startH < sHEnd) {
+				System.out.println(ls +"You already added a schedule during this time");
+				return false;
+			}
+			if(startH < sHStart) {
+				if(endH > sHStart) System.out.println(ls + "You already added a schedule during this time");
+				return false;
+			}
+			if(startH == sHStart) {
+				if(startM > sMStart && startM < sMEnd) {
+					System.out.println(ls + "You already added a schedule during this time");
+					return false;
+				}
+				if(startM < sMStart) {
+					if(endM > sMStart) System.out.println(ls + "You already added a schedule during this time");
+					return false;
+				}
+			}
+		}
+		
+		return true;
 	}
 }
