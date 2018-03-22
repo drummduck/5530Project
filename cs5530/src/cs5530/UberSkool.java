@@ -192,6 +192,7 @@ public class UberSkool {
 				}
 			}
 		} catch (Exception e) {
+			e.printStackTrace();
 			System.err.println("Either connection error or query execution error!");
 		} finally {
 			if (con != null) {
@@ -414,6 +415,7 @@ public class UberSkool {
 							continue;					
 						}
 				}
+				
 				else if(cmd.equals("N")){
 					System.out.println(ls +"Please enter a login name you would like to use. (must have at least one character that isn't a number)");
 					if((cmd = scanner.nextLine()).equals("0")) {
@@ -425,7 +427,7 @@ public class UberSkool {
 						return false;
 					}
 					else password = cmd;
-					System.out.println(ls + "Please enter your phone number e.g. (123)-456-7890");
+					System.out.println(ls + "Please enter your phone number e.g. (123)456-7890");
 					if((cmd = scanner.nextLine()).equals("0")) {
 						return false;
 					}
@@ -456,12 +458,54 @@ public class UberSkool {
 						continue;
 					}
 					else {
+						if((hours = setHours(con, scanner)).isEmpty()) {
+							System.out.println(ls + "You must add hours to register as a driver" + ls);
+							while(true) {
+								System.out.println(ls + "Would you like to try again? Y or N?");
+								if((cmd = scanner.nextLine()).equals("Y")) break;
+								else if(cmd.equals("0")) return false;
+								else if(cmd.equals("N")) return false;
+								else System.out.println(ls + "Not a valid option");
+							}
+							continue;					
+						}
+						
+						for(String s: hours) {
+							String startTime = "";
+							String endTime = "";
+							
+							startTime = s.substring(0,4);
+							endTime = s.substring(6);
+							query = String.format("INSERT INTO hours_Of_Operation (start, end, ID) VALUES ('%s', '%s', %d", startTime, endTime, ID);
+							
+							try {
+								con.stmt.executeUpdate(query);
+							}
+							catch(SQLException e){
+								System.out.println(ls + "There was an issue adding your hours" + ls);
+								while(true) {
+									System.out.println(ls + "Would you like to try again? Y or N?");
+									if((cmd = scanner.nextLine()).equals("Y")) {
+										tryAgain = true;
+										break;
+									}
+									else if(cmd.equals("0")) return false;
+									else if(cmd.equals("N")) return false;
+									else System.out.println(ls + "Not a valid option");
+								}
+								break;	
+							}
+							
+						}
+						
+						if(tryAgain) continue;
+						
 						try {
-							query = String.format("select * from UD where loginName = '%s'", loginName);
+							query = String.format("select loginName FROM UU where loginName = '%s' UNION select loginName FROM UD WHERE loginName = '%s'", loginName, loginName);
 							ResultSet rs = con.stmt.executeQuery(query);
 							ResultSetMetaData rsmd = rs.getMetaData();
 							if(rs.next()) { 
-								System.out.println(ls + "A driver with that login name already exists.");
+								System.out.println(ls + "A user/driver with that login name already exists.");
 								while(true) {
 									System.out.println(ls + "Would you like to try again? Y or N?");
 									if((cmd = scanner.nextLine()).equals("Y")) break;
@@ -472,14 +516,19 @@ public class UberSkool {
 								continue;
 							}
 							else {
-								query = String.format("insert into UD (address, phoneNumber, firstName, lastName, loginName, password) values ('%s', '%s', '%s', '%s', '%s', '%s')",
+								query = String.format("insert into UU (address, phoneNumber, firstName, lastName, loginName, password) values ('%s', '%s', '%s', '%s', '%s', '%s')",
 										address, phoneNumber, firstName, lastName, loginName, password);
-								con.stmt.executeQuery(query);
-								query = String.format("select * from UD where loginName = %s", loginName);
+								con.stmt.executeUpdate(query);
+								query = String.format("insert into UD (address, phoneNumber, firstName, lastName, loginName, password) values ('%s', '%s', '%s', '%s', '%s', '%s')", 
+										address, phoneNumber, firstName, lastName, loginName, password); 
+								con.stmt.executeUpdate(query);
+								
+								query = String.format("select * from UD where loginName = '%s'", loginName);
 								rs = con.stmt.executeQuery(query);
-								rsmd = rs.getMetaData();
-								ID = rs.getInt("ID");
-								System.out.println("Your driver ID is " + ID);
+								if(rs.next()) {
+									ID = rs.getInt("ID");
+								}
+								System.out.println(ls + "You are now a registered user and driver! Your driver ID is " + ID);
 								return true;
 							}	
 						}
@@ -1469,14 +1518,14 @@ public class UberSkool {
 		ArrayList<String> times = new ArrayList<String>();
 		
 		while(true) {
-			System.out.println("You must set your work hours to register. What time can you start? e.g.(HH:MM");
+			System.out.println("You must set your work hours to register. What time can you start? e.g.(HH:MM)");
 			if((cmd = scanner.nextLine()).equals("0")) {
 				times.clear();
 				return times;
 			}
 			else timeStart = cmd;
 			
-			System.out.println("What time do you want to end your shift? e.g.(HH:MM");
+			System.out.println("What time do you want to end your shift? e.g.(HH:MM)");
 			if((cmd = scanner.next()).equals("0")) {
 				times.clear();
 				return times;
@@ -1533,18 +1582,18 @@ public class UberSkool {
 		
 		if(!startTimeOkay || !endTimeOkay) return false;
 		
-		if(startTime.substring(0,1).startsWith("0")) startHour = startTime.substring(1,1);
+		if(startTime.substring(0,1).startsWith("0")) startHour = Character.toString(startTime.charAt(1));
 		else startHour = startTime.substring(0,1);
 		
-		if(startTime.substring(3,4).startsWith("0")) startMinute = startTime.substring(4,4);
+		if(startTime.substring(3,4).startsWith("0")) startMinute = Character.toString(startTime.charAt(4));
 		else startMinute = startTime.substring(3,4);
 		
-		if(endTime.substring(0,1).startsWith("0")) startHour = endTime.substring(1,1);
-		else startHour = startTime.substring(0,1);
+		if(endTime.substring(0,1).startsWith("0")) endHour = Character.toString(endTime.charAt(1));
+		else endHour = startTime.substring(0,1);
 		
-		if(endTime.substring(3,4).startsWith("0")) startMinute = endTime.substring(4,4);
-		else startMinute = endTime.substring(3,4);
-		
+		if(endTime.substring(3,4).startsWith("0")) endMinute = Character.toString(endTime.charAt(4));
+		else endMinute = endTime.substring(3,4);
+				
 		startH = Integer.parseInt(startHour);
 		startM = Integer.parseInt(startMinute);
 		
