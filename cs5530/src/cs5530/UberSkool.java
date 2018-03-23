@@ -5,6 +5,7 @@ import java.sql.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Scanner;
 import java.util.regex.Pattern;
 import java.io.*;
@@ -46,8 +47,8 @@ public class UberSkool {
 		System.out.println("1: Record reservations");
 		System.out.println("2: Record rides");
 		System.out.println("3: Declare a favorite UC");
-		System.out.println("4: Rate user feedback");
-		System.out.println("5: Rate user");
+		System.out.println("4: Rate UC");
+		System.out.println("5: Rate UU");
 		System.out.println("6: Search for UC");
 		System.out.println("7: Degree of seperation from user");
 		System.out.println("8: Statistics");
@@ -165,14 +166,20 @@ public class UberSkool {
 						displayMenu();
 					}
 				} else if (c == 4) {
-					if (!register(con, scanner, true)) {
-						clearUser();
-						loginState = LoginState.MENU;
-						displayMenu();
-					} else {
-						loginState = LoginState.MENU;
-						clearUser();
-						displayMenu();
+					if(loginState == LoginState.USERMENU) {
+						feedbackRecording(con, scanner);
+						userMenu();
+					}
+					else if(loginState == LoginState.MENU){
+						if (!register(con, scanner, true)) {
+							clearUser();
+							loginState = LoginState.MENU;
+							displayMenu();
+						} else {
+							loginState = LoginState.MENU;
+							clearUser();
+							displayMenu();
+						}
 					}
 				} else {
 					System.out.println("EoM");
@@ -2026,6 +2033,124 @@ public class UberSkool {
 			}
 		}
 
+		return true;
+	}
+	
+	public static void feedbackRecording(Connector2 con, Scanner scanner) {
+		String cmd = "";
+		String query = "";
+		String vin = "";
+		String rating = "";
+		String comment = "";
+		Boolean addComment = false;
+		
+		while(true) {
+			addComment = false;
+			System.out.println("Which vehicle would you like feedback to?");
+			if((cmd = scanner.nextLine()).equals("0")) return;
+			else vin = cmd;
+			
+			System.out.println("What rating would you like to give them? (0-10)");
+			if((cmd = scanner.nextLine()).equals("0")) return;
+			else rating = cmd;
+			
+			while (true) {
+				System.out.println(ls + "Would you like to add a comment? Y or N?");
+				if ((cmd = scanner.nextLine()).equals("Y")) {
+					System.out.println(ls + "Enter your comment (less than 300 characters)");
+					if((cmd = scanner.nextLine()).equals("0")) return;
+					else comment = cmd;
+					addComment = true;
+					break;
+				}
+				else if (cmd.equals("0")) return;
+				else if (cmd.equals("N")) break;
+				else System.out.println(ls + "Not a valid option");
+			}
+			
+			if(!checkFeedback(vin, rating, comment)) {
+				while (true) {
+					System.out.println(ls + "Would you like to try again? Y or N?");
+					if ((cmd = scanner.nextLine()).equals("Y")) break;
+					else if (cmd.equals("0")) return;
+					else if (cmd.equals("N")) return;
+					else System.out.println(ls + "Not a valid option");
+				}
+				continue;
+			}
+			else {
+				query = String.format("select * from Feedback f, UC_Rating u where f.feedbackID = u.feedbackID and u.VIN = '%s' and f.loginName = '%s'", vin, loginName);
+				try {
+					ResultSet rs = con.stmt.executeQuery(query);
+					if(rs.next()) {
+						System.out.println(ls + "You have already given a review for this vehicle");
+						while (true) {
+							System.out.println(ls + "Would you like to try again? Y or N?");
+							if ((cmd = scanner.nextLine()).equals("Y")) break;
+							else if (cmd.equals("0")) return;
+							else if (cmd.equals("N")) return;
+							else System.out.println(ls + "Not a valid option");
+						}
+						continue;
+					}
+					else {
+						Calendar calendar = Calendar.getInstance();
+					     java.sql.Date date = new java.sql.Date(calendar.getTime().getTime());
+					     System.out.println(date.toString());
+						query = String.format("INSERT INTO Feedback (text, score, loginName, date) VALUES ('%s', %d, '%s', '%s')", addComment ? comment : "", Integer.parseInt(rating), loginName, date.toString());
+						con.stmt.executeUpdate(query);
+						query = "SELECT feedbackID FROM Feedback ORDER BY feedbackID DESC LIMIT 1";
+						rs = con.stmt.executeQuery(query);
+						if(rs.next()) System.out.println("Your feedback ID is: " + rs.getInt("feedbackID"));
+						else throw new SQLException();
+						query = String.format("INSERT INTO UC_Rating (feedbackID, VIN) VALUES (%d, '%s')", rs.getInt("feedbackID"), vin);
+						con.stmt.executeUpdate(query);
+						return;
+					}
+				} catch (SQLException e) {
+					e.printStackTrace();
+					System.out.println(ls + "There was an issue adding your review");
+					while (true) {
+						System.out.println(ls + "Would you like to try again? Y or N?");
+						if ((cmd = scanner.nextLine()).equals("Y")) break;
+						else if (cmd.equals("0")) return;
+						else if (cmd.equals("N")) return;
+						else System.out.println(ls + "Not a valid option");
+					}
+					continue;					
+				}
+			}
+		}
+	}
+	
+	public static Boolean checkFeedback(String vin, String rating, String comment) {
+		
+		Boolean vinOkay = true;
+		Boolean ratingOkay = true;
+		Boolean commentOkay = true;
+		int ratingInt = -1;
+		
+		if (!Pattern.matches("^[a-zA-Z0-9]*$", vin) || vin.length() != 17) vinOkay = false;
+		try {
+			ratingInt = Integer.parseInt(rating);
+		}
+		catch(NumberFormatException e) {
+			ratingOkay = false;
+			System.out.println("You must enter an integer between 1-10 for your rating");
+		}
+		
+		if(ratingInt < 1 || ratingInt > 10) {
+			ratingOkay = false;
+			System.out.println("You must enter an integer between 1-10 for your rating");
+		}
+	
+		if(comment.length() > 300) {
+			commentOkay = false;
+			System.out.println("Comment must be less than 300 characters");
+		}
+		
+		if(!vinOkay || !ratingOkay || !commentOkay) return false;
+			
 		return true;
 	}
 }
