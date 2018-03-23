@@ -325,7 +325,7 @@ public class UberSkool {
 				System.out.println(ls +"Do you already have a user account you would like to register as a driver? Y or N?");
 				if((cmd = scanner.nextLine()).equals("Y")) {
 					try {
-						if(Login(con, scanner, driver)){
+						if(Login(con, scanner, false)){
 							query = String.format("select * from UD where loginName = '%s'", loginName);
 							ResultSet rs = con.stmt.executeQuery(query);
 							ResultSetMetaData rsmd = rs.getMetaData();
@@ -355,14 +355,17 @@ public class UberSkool {
 									String startTime = "";
 									String endTime = "";
 									
-									startTime = s.substring(0,4);
+									startTime = s.substring(0,5);
 									endTime = s.substring(6);
-									query = String.format("INSERT INTO hours_Of_Operation (start, end, ID) VALUES ('%s', '%s', %d", startTime, endTime, ID);
+									
+									System.out.println("startTime: " + startTime + ", endTime: " + endTime);
+									query = String.format("INSERT INTO hours_Of_Operation (start, end, ID) VALUES ('%s', '%s', %d)", startTime, endTime, ID);
 									
 									try {
 										con.stmt.executeUpdate(query);
 									}
 									catch(SQLException e){
+										e.printStackTrace();
 										System.out.println(ls + "There was an issue adding your hours" + ls);
 										while(true) {
 											System.out.println(ls + "Would you like to try again? Y or N?");
