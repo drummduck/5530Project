@@ -49,9 +49,10 @@ public class UberSkool {
 		System.out.println("3: Declare a favorite UC");
 		System.out.println("4: Rate UC");
 		System.out.println("5: Rate UU");
-		System.out.println("6: Search for UC");
-		System.out.println("7: Degree of seperation from user");
-		System.out.println("8: Statistics");
+		System.out.println("6: Rate feedback");
+		System.out.println("7: Search for UC");
+		System.out.println("8: Degree of seperation from user");
+		System.out.println("9: Statistics");
 	}
 
 	public static void driverMenu() {
@@ -89,21 +90,17 @@ public class UberSkool {
 				try {
 					c = Integer.parseInt(choice);
 				} catch (Exception e) {
-					System.out.println("Not a valid option, please select from the following:");
-					System.out.println("0: Quit Program");
-					System.out.println("1: Login as registered user");
-					System.out.println("2: Login as registered driver");
-					System.out.println("3: Register as user");
-					System.out.println("4: Register as driver" + ls);
+					System.out.println("Please enter a valid option");
+					if(loginState == LoginState.DRIVERMENU) driverMenu();
+					else if(loginState == LoginState.USERMENU) userMenu();
+					else displayMenu();
 					continue;
 				}
-				if (c < 0 | c > 4) {
-					System.out.println("Not a valid option, please select from the following:");
-					System.out.println("0: Quit Program");
-					System.out.println("1: Login as registered user");
-					System.out.println("2: Login as registered driver");
-					System.out.println("3: Register a user");
-					System.out.println("4: Register a driver" + ls);
+				if (c < 0 | c > 9) {
+					System.out.println("Please enter a valid option");
+					if(loginState == LoginState.DRIVERMENU) driverMenu();
+					else if(loginState == LoginState.USERMENU) userMenu();
+					else displayMenu();
 					continue;
 				} else if (c == 0) {
 					if (loginState == LoginState.USERMENU || loginState == LoginState.DRIVERMENU) {
@@ -181,7 +178,15 @@ public class UberSkool {
 							displayMenu();
 						}
 					}
-				} else {
+				} else if (c == 5) {
+					
+				} else if (c == 6) {
+					if(loginState == LoginState.USERMENU) {
+						rateFeedback(con, scanner);
+						userMenu();
+					}
+				}
+				else {
 					System.out.println("EoM");
 					con.stmt.close();
 
@@ -254,7 +259,6 @@ public class UberSkool {
 							ID = rs.getInt("ID");
 							isDriver = true;
 						}
-						loginState = LoginState.USERMENU;
 						return true;
 					} else {
 						if (!driver) {
@@ -2097,7 +2101,7 @@ public class UberSkool {
 						Calendar calendar = Calendar.getInstance();
 					     java.sql.Date date = new java.sql.Date(calendar.getTime().getTime());
 					     System.out.println(date.toString());
-						query = String.format("INSERT INTO Feedback (text, score, loginName, date) VALUES ('%s', %d, '%s', '%s')", addComment ? comment : "", Integer.parseInt(rating), loginName, date.toString());
+						query = String.format("INSERT INTO Feedback (comment, score, loginName, date) VALUES ('%s', %d, '%s', '%s')", addComment ? comment : "", Integer.parseInt(rating), loginName, date.toString());
 						con.stmt.executeUpdate(query);
 						query = "SELECT feedbackID FROM Feedback ORDER BY feedbackID DESC LIMIT 1";
 						rs = con.stmt.executeQuery(query);
@@ -2152,5 +2156,137 @@ public class UberSkool {
 		if(!vinOkay || !ratingOkay || !commentOkay) return false;
 			
 		return true;
+	}
+	
+	public static void rateFeedback(Connector2 con, Scanner scanner) {
+		String cmd = "";
+		String query = "";
+		String feedbackID = "";
+		String rating = "";
+		
+		while(true) {
+			query = "select feedbackID, comment from Feedback";
+			ResultSet rs;
+			try {
+				rs = con.stmt.executeQuery(query);
+				System.out.println("**********UBER CAR FEEDBACK************");
+				while(rs.next()) {
+					System.out.println(rs.getInt("feedbackID") + "                 " + rs.getString("comment"));
+				}
+			} catch (SQLException e) {
+				System.out.println(ls + "There was an issue doing feedback rating");
+				while (true) {
+					System.out.println(ls + "Would you like to try again? Y or N?");
+					if ((cmd = scanner.nextLine()).equals("Y")) break;
+					else if (cmd.equals("0")) return;
+					else if (cmd.equals("N")) return;
+					else System.out.println(ls + "Not a valid option");
+				}
+				continue;					
+			}
+			
+			System.out.println(ls + "Which rating would you like to give feedback to? (give the id number)");
+			if((cmd = scanner.nextLine()).equals("0")) return;
+			else feedbackID = cmd;
+			
+			try {
+				Integer.parseInt(feedbackID);
+			} catch(NumberFormatException e) {
+				System.out.println(ls + "ID entered must be an integer");
+				while (true) {
+					System.out.println(ls + "Would you like to try again? Y or N?");
+					if ((cmd = scanner.nextLine()).equals("Y")) break;
+					else if (cmd.equals("0")) return;
+					else if (cmd.equals("N")) return;
+					else System.out.println(ls + "Not a valid option");
+				}
+				continue;	
+			}
+			
+			query = String.format("select loginName from Feedback where feedbackID = %d", Integer.parseInt(feedbackID));
+			try {
+				rs = con.stmt.executeQuery(query);
+				if(rs.next()){
+					if(rs.getString("loginName").equals(loginName)){
+						System.out.println("You cannot rate your own vehicle feedback");
+						while (true) {
+							System.out.println(ls + "Would you like to try again? Y or N?");
+							if ((cmd = scanner.nextLine()).equals("Y")) break;
+							else if (cmd.equals("0")) return;
+							else if (cmd.equals("N")) return;
+							else System.out.println(ls + "Not a valid option");
+						}
+						continue;
+					}
+				}
+				else {
+					System.out.println("feedback ID does not exist");
+					while (true) {
+						System.out.println(ls + "Would you like to try again? Y or N?");
+						if ((cmd = scanner.nextLine()).equals("Y")) break;
+						else if (cmd.equals("0")) return;
+						else if (cmd.equals("N")) return;
+						else System.out.println(ls + "Not a valid option");
+					}
+					continue;
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+				System.out.println("There was an issue looking up feedback");
+				while (true) {
+					System.out.println(ls + "Would you like to try again? Y or N?");
+					if ((cmd = scanner.nextLine()).equals("Y")) break;
+					else if (cmd.equals("0")) return;
+					else if (cmd.equals("N")) return;
+					else System.out.println(ls + "Not a valid option");
+				}
+				continue;
+			}
+			
+			System.out.println(ls + "Give a rating out of 3: 0 being 'useless', 1 being 'useful', 2 being 'very useful'");
+			rating = cmd = scanner.nextLine();
+			
+			try {
+				int ratingInt = Integer.parseInt(rating);
+				if(ratingInt < 0 || ratingInt > 2) {
+					System.out.println(ls + "Rating entered must be between 0 and 2");
+					while (true) {
+						System.out.println(ls + "Would you like to try again? Y or N?");
+						if ((cmd = scanner.nextLine()).equals("Y")) break;
+						else if (cmd.equals("0")) return;
+						else if (cmd.equals("N")) return;
+						else System.out.println(ls + "Not a valid option");
+					}
+					continue;
+				}
+			} catch(NumberFormatException e) {
+				System.out.println(ls + "Rating entered must be an integer");
+				while (true) {
+					System.out.println(ls + "Would you like to try again? Y or N?");
+					if ((cmd = scanner.nextLine()).equals("Y")) break;
+					else if (cmd.equals("0")) return;
+					else if (cmd.equals("N")) return;
+					else System.out.println(ls + "Not a valid option");
+				}
+				continue;	
+			}
+			query = String.format("INSERT INTO feedback_Rating (loginName, feedbackID, rating) VALUES ('%s', %d, %d)", loginName, Integer.parseInt(feedbackID), Integer.parseInt(rating));
+			try {
+				con.stmt.executeUpdate(query);
+			} catch (SQLException e) {
+				e.printStackTrace();
+				System.out.println(ls + "There was an issue adding your rating");
+				while (true) {
+					System.out.println(ls + "Would you like to try again? Y or N?");
+					if ((cmd = scanner.nextLine()).equals("Y")) break;
+					else if (cmd.equals("0")) return;
+					else if (cmd.equals("N")) return;
+					else System.out.println(ls + "Not a valid option");
+				}
+				continue;	
+			}
+			System.out.println("Feedback successfully rated");
+			return;
+		}
 	}
 }
