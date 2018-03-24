@@ -53,6 +53,7 @@ public class UberSkool {
 		System.out.println("7: Search for UC");
 		System.out.println("8: Degree of seperation from user");
 		System.out.println("9: Statistics");
+		System.out.println("10: Useful feedbacks");
 	}
 
 	public static void driverMenu() {
@@ -96,7 +97,7 @@ public class UberSkool {
 					else displayMenu();
 					continue;
 				}
-				if (c < 0 | c > 9) {
+				if (c < 0 | c > 10) {
 					System.out.println("Please enter a valid option");
 					if(loginState == LoginState.DRIVERMENU) driverMenu();
 					else if(loginState == LoginState.USERMENU) userMenu();
@@ -184,6 +185,11 @@ public class UberSkool {
 					if(loginState == LoginState.USERMENU) {
 						rateFeedback(con, scanner);
 						userMenu();
+					}
+				} else if (c == 10) {
+					if(loginState == LoginState.USERMENU) {
+					usefulFeedbacks(con, scanner);
+					userMenu();
 					}
 				}
 				else {
@@ -2171,9 +2177,10 @@ public class UberSkool {
 				rs = con.stmt.executeQuery(query);
 				System.out.println("**********UBER CAR FEEDBACK************");
 				while(rs.next()) {
-					System.out.println(rs.getInt("feedbackID") + "                 " + rs.getString("comment"));
+					System.out.println("ID:" + rs.getInt("feedbackID") + "                 " + "Comment: " + rs.getString("comment"));
 				}
 			} catch (SQLException e) {
+				e.printStackTrace();
 				System.out.println(ls + "There was an issue doing feedback rating");
 				while (true) {
 					System.out.println(ls + "Would you like to try again? Y or N?");
@@ -2286,6 +2293,128 @@ public class UberSkool {
 				continue;	
 			}
 			System.out.println("Feedback successfully rated");
+			return;
+		}
+	}
+	
+	public static void usefulFeedbacks(Connector2 con, Scanner scanner) {
+		String cmd = "";
+		String query = "";
+		String ID = "";
+		String ratingsAmount = "";
+		
+		while(true) {
+			query = "select ID, firstName, lastName from UD";
+			ResultSet rs;
+			try {
+				rs = con.stmt.executeQuery(query);
+				System.out.println("**********UBER CAR FEEDBACK************");
+				while(rs.next()) {
+					System.out.println("ID: " + rs.getInt("ID") + "  First Name: " + rs.getString("firstName") + "  Last Name: " + rs.getString("lastName"));
+				}
+			} catch (SQLException e) {
+				System.out.println(ls + "There was an issue during drivers loading");
+				while (true) {
+					System.out.println(ls + "Would you like to try again? Y or N?");
+					if ((cmd = scanner.nextLine()).equals("Y")) break;
+					else if (cmd.equals("0")) return;
+					else if (cmd.equals("N")) return;
+					else System.out.println(ls + "Not a valid option");
+				}
+				continue;					
+			}
+			
+			System.out.println(ls + "Which driver would you like to see useful feedbacks from? (Please give the ID)");
+			if((cmd = scanner.nextLine()).equals("0")) return;
+			else ID = cmd;
+			
+			try {
+				Integer.parseInt(cmd);
+			}
+			catch(NumberFormatException e) {
+				System.out.println(ls + "ID entered must be an integer");
+				while (true) {
+					System.out.println(ls + "Would you like to try again? Y or N?");
+					if ((cmd = scanner.nextLine()).equals("Y")) break;
+					else if (cmd.equals("0")) return;
+					else if (cmd.equals("N")) return;
+					else System.out.println(ls + "Not a valid option");
+				}
+				continue;
+			}
+			
+			query = String.format("SELECT * FROM UD where ID = %d", Integer.parseInt(ID));
+			try {
+				rs = con.stmt.executeQuery(query);
+				if(!rs.next()) {
+					System.out.println(ls + "Driver does not exist");
+					while (true) {
+						System.out.println(ls + "Would you like to try again? Y or N?");
+						if ((cmd = scanner.nextLine()).equals("Y")) break;
+						else if (cmd.equals("0")) return;
+						else if (cmd.equals("N")) return;
+						else System.out.println(ls + "Not a valid option");
+					}
+					continue;				
+				}
+			} catch (SQLException e) {
+				System.out.println(ls + "There was an issue looking up that driver");
+				while (true) {
+					System.out.println(ls + "Would you like to try again?");
+					if ((cmd = scanner.nextLine()).equals("Y")) break;
+					else if (cmd.equals("0")) return;
+					else if (cmd.equals("N")) return;
+					else System.out.println(ls + "Not a valid option");
+				}
+				continue;				
+			}	
+			
+			System.out.println(ls + "How many useful ratings would you like to see from this driver? (Enter an integer)");
+			if((cmd = scanner.nextLine()).equals("0")) return;
+			else ratingsAmount = cmd;
+			
+			try {
+				int amount = Integer.parseInt(ratingsAmount);
+				if(amount < 1) {
+					System.out.println(ls + "Number must be positive");
+					while (true) {
+						System.out.println(ls + "Would you like to try again?");
+						if ((cmd = scanner.nextLine()).equals("Y")) break;
+						else if (cmd.equals("0")) return;
+						else if (cmd.equals("N")) return;
+						else System.out.println(ls + "Not a valid option");
+					}
+					continue;
+				}
+			} catch(NumberFormatException e) {
+				System.out.println(ls + "Amount must be an integer");
+				while (true) {
+					System.out.println(ls + "Would you like to try again?");
+					if ((cmd = scanner.nextLine()).equals("Y")) break;
+					else if (cmd.equals("0")) return;
+					else if (cmd.equals("N")) return;
+					else System.out.println(ls + "Not a valid option");
+				}
+				continue;	
+			}
+			
+			query = String.format("select s.feedbackID, s.comment, avg(s.rating)  as average  from (select f.feedbackID, f.comment, r.rating from Feedback f, feedback_Rating r, UC_Rating c, UC u where c.VIN = u.VIN and u.ID = %d and f.feedbackID = c.feedbackID and f.feedbackID = r.feedbackID) as s group by s.feedbackID order by average desc limit %d;", Integer.parseInt(ID), Integer.parseInt(ratingsAmount));
+			try {
+				rs = con.stmt.executeQuery(query);
+				while(rs.next())
+				System.out.println(String.format("Feedback ID: %d          Comment: %s", rs.getInt("feedbackID"), rs.getString("comment")));
+				
+			} catch (SQLException e) {
+				System.out.println(ls + "There was an issue finding what you needed");
+				while (true) {
+					System.out.println(ls + "Would you like to try again?");
+					if ((cmd = scanner.nextLine()).equals("Y")) break;
+					else if (cmd.equals("0")) return;
+					else if (cmd.equals("N")) return;
+					else System.out.println(ls + "Not a valid option");
+				}
+				continue;
+			}
 			return;
 		}
 	}
