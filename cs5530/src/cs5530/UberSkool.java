@@ -959,12 +959,15 @@ public class UberSkool {
 										Integer.parseInt(numOfPeople), vin, loginName);
 								try {
 									con.stmt.executeUpdate(query);
-									query = "SELECT tripID FROM Rides ORDER BY tripID DESC LIMIT 1";
-
+									query = String.format("SELECT tripID, date FROM Rides ORDER BY tripID DESC LIMIT %d", rides.size());
 									ResultSet rs = con.stmt.executeQuery(query);
-									rs.next();
-									System.out.println(ls + "Your tripID is: " + rs.getInt("tripID"));
+									while(rs.next()) {
+										System.out.println(String.format("Your tripID for the trip on %s is: %d", rs.getDate("date").toString(), rs.getInt("tripID")));
+									}
+									
+									return;
 								} catch (SQLException e) {
+									e.printStackTrace();
 									rides.clear();
 									System.out.println(ls + "There was an issue adding your rides" + ls);
 									while (true) {
@@ -1102,9 +1105,8 @@ public class UberSkool {
 				continue;
 			} else {
 				try {
-					query = String.format("select * from Reservations where VIN = '%s' and date = '%s'", vin, date);
+					query = String.format("select * from Reservations where VIN = '%s' and date = '%s'", vin, date + " " + time);
 					ResultSet rs = con.stmt.executeQuery(query);
-					ResultSetMetaData rsmd = rs.getMetaData();
 					if (rs.next()) {
 						System.out.println(ls + "Reservation already made for that vehicle during that time");
 						while (true) {
@@ -1122,7 +1124,6 @@ public class UberSkool {
 					}
 					query = String.format("select * from UC where VIN = '%s'", vin);
 					rs = con.stmt.executeQuery(query);
-					rsmd = rs.getMetaData();
 					if (!rs.next()) {
 						System.out.println(ls + "Vehicle does not exist");
 						while (true) {
@@ -1154,8 +1155,31 @@ public class UberSkool {
 					}
 					continue;
 				}
-				if (!reservations.contains(String.format("UC VIN: %s, DateTime: %s", vin, date + " " + time)))
+				if (!reservations.contains(String.format("UC VIN: %s, DateTime: %s", vin, date + " " + time))) {
 					reservations.add(String.format("UC VIN: %s, DateTime: %s", vin, date + " " + time));
+					query = String.format("select r.VIN, count(*) as count from Rides r where r.loginName in (select distinct loginName from Rides where VIN = '%s') and r.VIN != '%s' group by r.VIN order by count", vin, vin);
+					try {
+						ResultSet rs = con.stmt.executeQuery(query);
+						while(rs.next()) {
+							System.out.println("***********OTHER UBER CARS YOU MIGHT LIKE*************");
+							System.out.println("    VIN:  " + rs.getString("VIN"));
+						}
+					} catch(SQLException e) {
+						System.out.println(ls + "There was an issue adding your reservation" + ls);
+						while (true) {
+							System.out.println(ls + "Would you like to try again? Y or N?");
+							if ((cmd = scanner.nextLine()).equals("Y"))
+								break;
+							else if (cmd.equals("0"))
+								return;
+							else if (cmd.equals("N"))
+								return;
+							else
+								System.out.println(ls + "Not a valid option");
+						}
+						continue;
+					}
+				}
 				while (true) {
 					System.out.println(ls + "Would you like to add another reservation? Y or N?");
 					if ((cmd = scanner.nextLine()).equals("Y"))
@@ -1200,6 +1224,10 @@ public class UberSkool {
 								s.substring(8, 25), loginName, s.substring((s.length() - 1) - 16));
 						con.stmt.executeUpdate(query);
 					}
+					
+					System.out.println("Reservations added!");
+					
+					//Here we do suggestions on other vehicles
 				} catch (SQLException e) {
 					e.printStackTrace();
 					reservations.clear();
@@ -1218,7 +1246,6 @@ public class UberSkool {
 					continue;
 				}
 			}
-			System.out.println("Reservations added");
 			return;
 		}
 	}
