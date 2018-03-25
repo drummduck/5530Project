@@ -44,10 +44,10 @@ public class Browse{
             addC(category, con);
             break;
           case "2": 
-            addA(address);
+            addA(address, con);
             break;
           case "3":       
-            addM(model);
+            addM(model, con);
             break;
           case "4":
             category.clear();
@@ -55,7 +55,7 @@ public class Browse{
             model.clear();
             break;
           case "5":
-            search(category, address, model);
+            search(category, address, model, con);
             break;
           default:
             if(Trust.notValid("Not a valid option")) return;
@@ -65,15 +65,16 @@ public class Browse{
     public static void addC(TreeSet ts, Connector2 con){
       Scanner scan = new Scanner(System.in);
       while(true){
-        System.out.println("Please enter a type of car you would like to search:");
+        System.out.println("Please enter a category of car you would like to search:");
         String entry = scan.nextLine();
         String query = String.format("select * from UC where category = '%s'",entry); 
         try{  
           ResultSet rs = con.stmt.executeQuery(query);
           if(rs.next()){
             ts.add(entry);
+            return;
           }else{
-            if(Trust.notValid("The category " + entry + " does not exists within our records.")) return;
+            if(Trust.notValid("The category '" + entry + "' does not exists within our records.")) return;
           }
           
         }catch(Exception e){
@@ -81,14 +82,111 @@ public class Browse{
         }
       }
     }
-    public static void addA(TreeSet ts){
+    public static void addA(TreeSet ts, Connector2 con){
       Scanner scan = new Scanner(System.in);
-      String entry = scan.nextLine();
+      while(true){
+        System.out.println("Please enter an address, you may search by City, State, or any substring of the address:");
+        String entry = scan.nextLine();
+        String x = "%" + entry + "%";
+        String query = String.format("select * from UD a join UC b on a.id = b.id where address like '%s'",x); 
+        try{  
+          ResultSet rs = con.stmt.executeQuery(query);
+          if(rs.next()){
+            ts.add(entry);
+            return;
+          }else{
+            if(Trust.notValid("The address '" + entry + "' does not exists within our records.")) return;
+          }
+          
+        }catch(Exception e){
+          System.out.println("An error occurred.");
+        }
+      }
     }
-    public static void addM(TreeSet ts){
+    public static void addM(TreeSet ts, Connector2 con){
       Scanner scan = new Scanner(System.in);
-      String entry = scan.nextLine();
+      while(true){
+        System.out.println("Please enter the car model you would like to search:");
+        String entry = scan.nextLine();
+        String query = String.format("select * from UC where model = '%s'",entry); 
+        try{  
+          ResultSet rs = con.stmt.executeQuery(query);
+          if(rs.next()){
+            ts.add(entry);
+            return;
+          }else{
+            if(Trust.notValid("The model '" + entry + "' does not exists within our records.")) return;
+          }
+          
+        }catch(Exception e){
+          System.out.println("An error occurred.");
+        }
+      }
       
     }
-    public static void search(TreeSet cat, TreeSet add, TreeSet mod){}
+    public static void search(TreeSet<String> cat, TreeSet<String> add, TreeSet<String> mod, Connector2 con){
+      ResultSet rs;
+      if(cat.size() == 0 && add.size() == 0 && mod.size() == 0){
+        System.out.println("No search parameters given, returning all cars:\n");
+        
+        String query = String.format("select b.vin, AVG(f.score) as average from UD a join UC b on a.id = b.id join UC_Rating r on b.vin = r.vin join Feedback f on f.feedbackID = r.feedbackID Group by b.vin order by average desc;");
+        try{
+        rs = con.stmt.executeQuery(query);
+         while(rs.next()){
+          System.out.println(rs.getString("VIN") + ", rating: " + rs.getString("average"));
+        }
+         System.out.println();
+         return;
+        }catch(Exception e){
+          System.out.println("An error occurred.");
+          return;
+        }
+        
+      }else{
+        String start = "select b.vin, AVG(f.score) as average from UD a join UC b on a.id = b.id join UC_Rating r on b.vin = r.vin join Feedback f on f.feedbackID = r.feedbackID where ";
+        Boolean and = false;
+        if(cat.size() != 0){
+          and = true;
+          start += "b.category = ";
+          for(String x : cat){
+            start += "'" + x + "' or "; 
+          }
+          start = start.substring(0, start.length() - 3);
+        }
+        if(add.size() != 0){
+          if(and) start += "and ";
+          and = true;
+          start += "a.address like ";
+          for(String x : add){
+            start += "'%" + x + "%' or "; 
+          }
+          start = start.substring(0, start.length() - 3);
+        }
+        if(mod.size() != 0){
+          if(and) start += "and ";
+          start += "b.model = ";
+          for(String x : mod){
+            start += "'" + x + "' or "; 
+          }
+          start = start.substring(0, start.length() - 3);
+        }    
+        
+        start += "Group by b.vin order by average desc";
+        
+        try{
+          System.out.println("Searching...\n" + start);
+          rs = con.stmt.executeQuery(start);
+          System.out.println("Results:\n");
+          while(rs.next()){
+            System.out.println(rs.getString("VIN") + ", rating: " + rs.getString("average"));
+          }
+          System.out.println();
+          return;
+        }catch(Exception e){
+          System.out.println("An error occurred.");
+          return;
+        }
+      }
+      
+    }
 }
