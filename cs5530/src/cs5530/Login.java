@@ -10,10 +10,10 @@ public class Login {
 		String query = "";
 		
 		if(!checkLoginInfo(loginName, password, isDriver)) {
-			return "<b>" + "Information entered was in the wrong format \n "
+			return "Information entered was in the wrong format \n "
 					+ "Please enter a password with at least 8 characters \n "
 					+ "Please enter a digit greater than 1 for driver ID \n "
-					+ "Please enter a login name with at least 1 non digit character" + "<\b>";
+					+ "Please enter a login name with at least 1 non digit character '<BR>";
 		}
 		
 		 if (!isDriver) query = "select * from UU where loginName = " + "\"" + loginName + "\"" + " and password = " + "\"" + password + "\"";
