@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 public class Registration {
 
 	public static String register(Connector con, String loginName, String password, String phone, String firstName,
-			String lastName, String timesIn, Boolean isDriver) {
+			String lastName, String timesIn, Boolean isDriver, String address, String phoneNumber) {
 
 		if (!checkInfo(isDriver, phone, password, firstName, lastName, loginName, isDriver, con)) {
 
@@ -25,18 +25,31 @@ public class Registration {
 					+ "Please enter a password with at least 8 characters \n"
 					+ "Please enter a loginName with at least 1 non-digit character \n '<BR>";
 		}
-
-		if (!checkHours(timesIn, con, loginName)) {
-			return "Information entered was in the wrong format \n "
-					+ "Please enter times in HH:MM format and seperate your starting and ending times with a ',' \n"
-					+ "If you would like to enter multiple times, seperate each starting/ending time with a ';' '<BR>";
-		}
-
+		
+		if(isDriver) {
+			if(!checkHours(timesIn, con, loginName, address, phoneNumber, firstName, lastName, password)) {
+				return "Information entered was in the wrong format \n "
+						+ "Please enter hours in the following format 'HH:MM,HH:MM' for start and end times \n"
+						+ "If you would like to add multiple times, add a ';' in between each entry. '<BR>";
+			}
+			
+			
+			String query = String.format("select * from UD where loginName = '%s'", loginName);
+			try {
+			ResultSet rs = con.stmt.executeQuery(query);
+			rs.next();
+			int ID = rs.getInt("ID");
+			return "Your driver ID is " + ID;
+			}
+			catch(SQLException e) {
+				
+			}
+		}	
 		// success
 		return "";
 	}
 
-	private static Boolean checkHours(String timesIn, Connector con, String loginName) {
+	private static Boolean checkHours(String timesIn, Connector con, String loginName, String address, String phoneNumber, String firstName, String lastName, String password) {
 		String[] times;
 		ArrayList<String> timesStart = new ArrayList<String>();
 		ArrayList<String> timesEnd = new ArrayList<String>();
@@ -192,11 +205,20 @@ public class Registration {
 			}
 			OkayTimes.add(sHourStart + ":" + sMinStart + " " + sHourEnd + ":" + sMinEnd);
 		}
-
-		//add the driver
 		
-		if (!addHours(con, OkayTimes, loginName))
-			return false;
+			String query = "";
+			query = String.format(
+					"insert into UD (address, phoneNumber, firstName, lastName, loginName, password) values ('%s', '%s', '%s', '%s', '%s', '%s')",
+					address, phoneNumber, firstName, lastName, loginName, password);
+			try {
+			con.stmt.executeUpdate(query);
+			}
+			catch(SQLException e) {
+				return false;
+			}
+			if(!addHours(con, OkayTimes, loginName)) {
+				return false;
+			}
 
 		return true;
 	}
