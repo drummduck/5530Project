@@ -15,7 +15,8 @@ public class Rides {
 			+ "For the date please enter in this format: 'YYYY-MM-DD HH:MM' \n"
 			+ "For distance please enter an integer in miles \n" 
 			+ "For the number of people please enter an integer \n"
-			+ "For the VIN please enter an alphanumeric of length 17 '<BR>";
+			+ "For the VIN please enter an alphanumeric of length 17"
+			+ "For multiple rides please seperate each entry with a comma '<BR>";
 
 	public static String RecordRide(String datesIn, String distsIn, String costsIn, String numOfPeoplesIn,
 			String vinsIn, Connector con) {
