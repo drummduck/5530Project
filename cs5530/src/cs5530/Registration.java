@@ -1,5 +1,7 @@
 package cs5530;
 
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
@@ -9,7 +11,7 @@ public class Registration {
 	public static String register(Connector con, String loginName, String password, String phone, String firstName,
 			String lastName, String timesIn, Boolean isDriver) {
 
-		if (!checkInfo(isDriver, phone, password, firstName, lastName, loginName)) {
+		if (!checkInfo(isDriver, phone, password, firstName, lastName, loginName, isDriver, con)) {
 
 			if (isDriver) {
 				return "Information entered was in the wrong format \n "
@@ -191,6 +193,8 @@ public class Registration {
 			OkayTimes.add(sHourStart + ":" + sMinStart + " " + sHourEnd + ":" + sMinEnd);
 		}
 
+		//add the driver
+		
 		if (!addHours(con, OkayTimes, loginName))
 			return false;
 
@@ -198,7 +202,9 @@ public class Registration {
 	}
 
 	private static boolean checkInfo(Boolean driver, String phoneNumber, String password, String firstName,
-			String lastName, String loginName) {
+			String lastName, String loginName, Boolean isDriver, Connector con) {
+		String query = "";
+		String cmd = "";
 		Boolean phoneNumberOkay = true;
 		Boolean passwordOkay = true;
 		Boolean loginNameOkay = true;
@@ -213,6 +219,32 @@ public class Registration {
 		if (!phoneNumberOkay || !passwordOkay || !loginNameOkay) {
 			return false;
 		} else
+			
+			//check if user exists
+			if(isDriver) {
+				query = String.format("select * from UD where loginName = '%s'", loginName);
+				ResultSet rs;
+				try {
+					rs = con.stmt.executeQuery(query);
+					
+					if (rs.next()) return false;
+				}
+				catch(SQLException e) {
+					return false;
+				}
+			}
+			else {
+				query = String.format("select * from UU where loginName = '%s'", loginName);
+				ResultSet rs;
+				try {
+					rs = con.stmt.executeQuery(query);
+					
+					if (rs.next()) return false;
+				}
+				catch(SQLException e) {
+					return false;
+				}
+			}
 			return true;
 	}
 
