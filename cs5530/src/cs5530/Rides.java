@@ -1,43 +1,104 @@
 package cs5530;
 
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.regex.Pattern;
 
 public class Rides {
 
-	
-	public static String RecordRide(String datesIn, String timesIn, String distsIn, String costsIn, String numOfPeoplesIn, String vinsIn) {
+	static ArrayList<Ride> rides = new ArrayList<Ride>();
+	static String errorReturn = "Information entered was in the wrong format \n"
+			+ "For cost please enter a dollar amount format e.g.(12.50) \n"
+			+ "For the date please enter in this format: 'YYYY-MM-DD HH:MM' \n"
+			+ "For distance please enter an integer in miles \n" 
+			+ "For the number of people please enter an integer \n"
+			+ "For the VIN please enter an alphanumeric of length 17 '<BR>";
+
+	public static String RecordRide(String datesIn, String distsIn, String costsIn, String numOfPeoplesIn,
+			String vinsIn, Connector con) {
 		String[] dates = datesIn.split(",");
-		String[] times = timesIn.split(",");
 		String[] dists = distsIn.split(",");
 		String[] costs = costsIn.split(",");
 		String[] numOfPeoples = numOfPeoplesIn.split(",");
 		String[] vins = vinsIn.split(",");
-		
+		String query = "";
+
+		if (dates.length == dists.length && dists.length == costs.length && numOfPeoples.length == vins.length) {
+			for (int i = 0; i <= dates.length; i++) {
+				if (!checkRide(dates[i], dates[i].split("\\s+")[1], dists[i], costs[i], numOfPeoples[i], vins[i])) {
+					rides.clear();
+					return errorReturn;
+				}
+
+				try {
+					query = String.format("select * from UC where VIN = '%s'", vins[i]);
+					ResultSet rs = con.stmt.executeQuery(query);
+					ResultSetMetaData rsmd = rs.getMetaData();
+					if (!rs.next()) {
+						return errorReturn;
+					}
+					query = String.format("select * from Rides where date = '%s' AND VIN = '%s'",
+							dates[i] + " " + dates[i].split("\\s+")[1], vins[i]);
+					rs = con.stmt.executeQuery(query);
+					rsmd = rs.getMetaData();
+					if (rs.next()) {
+						return errorReturn;
+					}
+					query = String.format(
+							"select c.ID, d.ID, h.start, h.end from UC c, UD d, hours_Of_Operation h where c.VIN = '%s' AND c.ID = d.ID AND d.ID = h.ID AND h.start <= TIME('%s') AND h.end >= TIME('%s')",
+							vins[i], dates[i].split("\\s+")[1], dates[i].split("\\s+")[1]);
+					rs = con.stmt.executeQuery(query);
+					rsmd = rs.getMetaData();
+					if (!rs.next()) {
+						return errorReturn;
+					}
+				} catch (SQLException e) {
+					return errorReturn;
+				}
+
+				rides.add(new Ride(dists[i], dates[i], costs[i], numOfPeoples[i], vins[i]));
+			}
+			String returnRides = "Do these rides look okay to you? \n";
+			for (Ride r : rides)
+				returnRides = returnRides + r.toString() + "\n";
+			return returnRides + "'<BR>";
+		}
+
 		return "";
 	}
-	
-	private static boolean approveRides(ArrayList<Ride> rides, Scanner scanner) {
-		String cmd = "";
-		System.out.println(ls + "These are your rides:");
-		for (Ride r : rides)
-			System.out.println(r.toString());
 
-		while (true) {
-			System.out.println(ls + "Do these look okay to you? Y or N?");
-			if ((cmd = scanner.nextLine()).equals("Y"))
-				return true;
-			else if (cmd.equals("0"))
-				return false;
-			else if (cmd.equals("N"))
-				return false;
-			else
-				System.out.println(ls + "Not a valid option");
+	public static String approveRides(Boolean yesOrNo, Connector con, String loginName) {
+		String query = "";
+		String tripString = "";
+
+		if (!yesOrNo)
+			rides.clear();
+
+		for (Ride r : rides) {
+			query = String.format(
+					"INSERT INTO Rides (dist, date, cost, numOfPeople, VIN, loginName) VALUES (%d, '%s', %.2f, %d, '%s', '%s')",
+					Integer.parseInt(r.getDist()), r.getDate() + " " + r.getDate().split("\\s+")[1],
+					Float.parseFloat(r.getCost()), Integer.parseInt(r.getNumOfPeople()), r.getVIN(), loginName);
+			try {
+				con.stmt.executeUpdate(query);
+				query = String.format("SELECT tripID, date FROM Rides ORDER BY tripID DESC LIMIT %d", rides.size());
+				ResultSet rs = con.stmt.executeQuery(query);
+				while (rs.next()) {
+					tripString = tripString + String.format("Your tripID for the trip on %s is: %d \n",
+							rs.getDate("date").toString(), rs.getInt("tripID"));
+				}
+			} catch (SQLException e) {
+				return errorReturn;
+			}
 		}
+		return tripString + "'<BR>";
 	}
 
-	private static boolean checkRide(String date, String time, String dist, String cost, String numOfPeople, String vin) {
+	private static boolean checkRide(String date, String time, String dist, String cost, String numOfPeople,
+			String vin) {
 		Boolean dateOkay = true;
 		Boolean timeOkay = true;
 		Boolean distOkay = true;
@@ -67,23 +128,10 @@ public class Rides {
 		if (!Pattern.matches("^[a-zA-Z0-9]*$", vin) || vin.length() != 17)
 			vinOkay = false;
 
-		if (!costOkay)
-			System.out.println("Please enter a dollar amount format e.g.(12.50)");
-		if (!dateOkay)
-			System.out.println("Please enter a date in this format: YYYY-MM-DD");
-		if (!timeOkay)
-			System.out.println("Please enter a time in this format: HH:MM");
-		if (!distOkay)
-			System.out.println("Please enter an integer for distance in miles");
-		if (!numOfPeopleOkay)
-			System.out.println("Please enter an integer for the number of people");
-		if (!vinOkay)
-			System.out.println("Please enter an alphanumeric of length 17 for VIN");
-
 		if (!costOkay || !dateOkay || !timeOkay || !distOkay || !numOfPeopleOkay || !vinOkay)
 			return false;
 
 		return true;
 	}
-	
+
 }
