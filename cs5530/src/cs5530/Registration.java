@@ -1,20 +1,13 @@
 package cs5530;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
 
 public class Registration {
 
-	static String ls = System.getProperty("line.separator");
-
 	public static String register(Connector con, String loginName, String password, String phone, String firstName,
-			String lastName, String times, Boolean isDriver) {
-
-		if (!checkHours(times)) {
-			return "Information entered was in the wrong format \n "
-					+ "Please enter times in HH:MM format and seperate your starting and ending times with a ',' \n"
-					+ "If you would like to enter multiple times, seperate each starting/ending time with a ';' '<BR>";
-		}
+			String lastName, String timesIn, Boolean isDriver) {
 
 		if (!checkInfo(isDriver, phone, password, firstName, lastName, loginName)) {
 
@@ -31,14 +24,21 @@ public class Registration {
 					+ "Please enter a loginName with at least 1 non-digit character \n '<BR>";
 		}
 
+		if (!checkHours(timesIn, con, loginName)) {
+			return "Information entered was in the wrong format \n "
+					+ "Please enter times in HH:MM format and seperate your starting and ending times with a ',' \n"
+					+ "If you would like to enter multiple times, seperate each starting/ending time with a ';' '<BR>";
+		}
+
 		// success
 		return "";
 	}
 
-	private static Boolean checkHours(String timesIn) {
+	private static Boolean checkHours(String timesIn, Connector con, String loginName) {
 		String[] times;
 		ArrayList<String> timesStart = new ArrayList<String>();
 		ArrayList<String> timesEnd = new ArrayList<String>();
+		ArrayList<String> OkayTimes = new ArrayList<String>();
 
 		try {
 			times = timesIn.split(";");
@@ -72,7 +72,6 @@ public class Registration {
 
 			startTime = timesStart.get(i);
 			endTime = timesEnd.get(i);
-			ArrayList<String> OkayTimes = new ArrayList<String>();
 
 			String sHourStart = "";
 			String sMinStart = "";
@@ -149,15 +148,16 @@ public class Registration {
 				sHEnd = Integer.parseInt(sHourEnd);
 				sMStart = Integer.parseInt(sMinStart);
 				sMEnd = Integer.parseInt(sMinEnd);
-				
-				if(startH == sHStart && endH == sHEnd && startM == sMStart && endM == sMEnd) continue;
+
+				if (startH == sHStart && endH == sHEnd && startM == sMStart && endM == sMEnd)
+					continue;
 
 				if (startH > sHStart) {
 					if (startH < sHEnd) {
 						return false;
 					} else if (startH == sHEnd) {
 						if (startM > sMStart) {
-							
+
 							if (startM < sMEnd || startM == sMEnd)
 								return false;
 						} else if (startM <= sMStart) {
@@ -191,6 +191,9 @@ public class Registration {
 			OkayTimes.add(sHourStart + ":" + sMinStart + " " + sHourEnd + ":" + sMinEnd);
 		}
 
+		if (!addHours(con, OkayTimes, loginName))
+			return false;
+
 		return true;
 	}
 
@@ -211,5 +214,38 @@ public class Registration {
 			return false;
 		} else
 			return true;
+	}
+
+	private static boolean addHours(Connector con, ArrayList<String> hours, String loginName) {
+		String query = "";
+		String cmd = "";
+		int ID;
+		
+		try {
+			ID = Integer.parseInt(loginName);
+		}
+		catch(NumberFormatException e){
+			return false;
+		}
+		
+		for (String s : hours) {
+			String startTime = "";
+			String endTime = "";
+
+			startTime = s.substring(0, 5);
+			endTime = s.substring(6);
+
+			System.out.println("startTime: " + startTime + ", endTime: " + endTime);
+			query = String.format(
+					"INSERT INTO hours_Of_Operation (start, end, ID) VALUES ('%s', '%s', %d)",
+					startTime, endTime, ID);
+
+			try {
+				con.stmt.executeUpdate(query);
+			} catch (SQLException e) {
+					return false;
+			}
+		}
+		return true;
 	}
 }
