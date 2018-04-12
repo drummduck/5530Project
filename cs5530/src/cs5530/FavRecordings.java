@@ -2,12 +2,15 @@ package cs5530;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.regex.Pattern;
 
 public class FavRecordings {
 
 	static String errorReturn = "Information entered was in the wrong format, or the vehicle didn't exist '<BR>";
 	
 	public static String declareFavorite(String loginName, String vin, Connector con) {
+		
+		if (!Pattern.matches("^[a-zA-Z0-9]*$", vin) || vin.length() != 17) return errorReturn;
 		
 		String query = "select * from Favorites where loginName = " + loginName;
 	
