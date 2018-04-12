@@ -29,7 +29,6 @@ public class NewUC {
 		ResultSet rs;
 		try {
 			rs = con.stmt.executeQuery(query);
-			ResultSetMetaData rsmd = rs.getMetaData();
 			if (rs.next()) {
 				return errorReturn;
 			}
@@ -69,7 +68,7 @@ public class NewUC {
 		return true;
 	}
 
-	public static String updateCar(String vin, String newVin, String category, String make, String model, String year, Connector con) {
+	public static String updateCar(String vin, String newVin, String category, String make, String model, String year, Connector con, String ID) {
 		
 		String query = "";
 		Boolean updateCategory = false;
