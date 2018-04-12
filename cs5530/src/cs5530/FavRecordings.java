@@ -6,7 +6,8 @@ import java.util.regex.Pattern;
 
 public class FavRecordings {
 
-	static String errorReturn = "Information entered was in the wrong format, or the vehicle didn't exist '<BR>";
+	static String errorReturn = "Information entered was in the wrong format, or the vehicle didn't exist \n"
+			+ "For vin please enter an alphanumeric value with 17 characters '<BR>";
 	
 	public static String declareFavorite(String loginName, String vin, Connector con) {
 		
