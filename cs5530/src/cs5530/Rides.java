@@ -10,13 +10,14 @@ import java.util.regex.Pattern;
 public class Rides {
 
 	static ArrayList<Ride> rides = new ArrayList<Ride>();
-	static String errorReturn = "Information entered was in the wrong format \n"
+	static String errorReturn = "Information entered was in the wrong format, the vehicle didn't exist, or the ride already existed \n"
 			+ "For cost please enter a dollar amount format e.g.(12.50) \n"
 			+ "For the date please enter in this format: 'YYYY-MM-DD HH:MM' \n"
 			+ "For distance please enter an integer in miles \n" 
 			+ "For the number of people please enter an integer \n"
 			+ "For the VIN please enter an alphanumeric of length 17"
-			+ "For multiple rides please seperate each entry with a comma '<BR>";
+			+ "For multiple rides please seperate each entry with a comma"
+			+ "Must have same amount of entries for every field '<BR>";
 
 	public static String RecordRide(String datesIn, String distsIn, String costsIn, String numOfPeoplesIn,
 			String vinsIn, Connector con) {
@@ -29,7 +30,7 @@ public class Rides {
 
 		if (dates.length == dists.length && dists.length == costs.length && numOfPeoples.length == vins.length) {
 			for (int i = 0; i <= dates.length; i++) {
-				if (!checkRide(dates[i], dates[i].split("\\s+")[1], dists[i], costs[i], numOfPeoples[i], vins[i])) {
+				if (!checkRide(dates[i].split("\\s+")[0], dates[i].split("\\s+")[1], dists[i], costs[i], numOfPeoples[i], vins[i])) {
 					rides.clear();
 					return errorReturn;
 				}
@@ -39,13 +40,15 @@ public class Rides {
 					ResultSet rs = con.stmt.executeQuery(query);
 					ResultSetMetaData rsmd = rs.getMetaData();
 					if (!rs.next()) {
+						rides.clear();
 						return errorReturn;
 					}
 					query = String.format("select * from Rides where date = '%s' AND VIN = '%s'",
-							dates[i] + " " + dates[i].split("\\s+")[1], vins[i]);
+							dates[i].split(",")[0] + " " + dates[i].split("\\s+")[1], vins[i]);
 					rs = con.stmt.executeQuery(query);
 					rsmd = rs.getMetaData();
 					if (rs.next()) {
+						rides.clear();
 						return errorReturn;
 					}
 					query = String.format(
@@ -54,9 +57,11 @@ public class Rides {
 					rs = con.stmt.executeQuery(query);
 					rsmd = rs.getMetaData();
 					if (!rs.next()) {
+						rides.clear();
 						return errorReturn;
 					}
 				} catch (SQLException e) {
+					rides.clear();
 					return errorReturn;
 				}
 
@@ -75,8 +80,10 @@ public class Rides {
 		String query = "";
 		String tripString = "";
 
-		if (!yesOrNo)
+		if (!yesOrNo) {
 			rides.clear();
+			return "";
+		}
 
 		for (Ride r : rides) {
 			query = String.format(
@@ -92,6 +99,7 @@ public class Rides {
 							rs.getDate("date").toString(), rs.getInt("tripID"));
 				}
 			} catch (SQLException e) {
+				rides.clear();
 				return errorReturn;
 			}
 		}
