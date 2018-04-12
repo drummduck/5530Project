@@ -42,7 +42,10 @@ public class Registration {
 			return "Your driver ID is " + ID;
 			}
 			catch(SQLException e) {
-				
+				return "Information entered was in the wrong format \n "
+						+ "Please enter a phone number in the given format: (xxx)xxx-xxxx \n"
+						+ "Please enter a password with at least 8 characters \n"
+						+ "Please enter a driver ID greater than 1 \n '<BR>";
 			}
 		}	
 		// success
@@ -124,13 +127,9 @@ public class Registration {
 			endM = Integer.parseInt(endMinute);
 
 			if (startH > endH) {
-				// System.out.println(ls + "Your starting time cannot be greater than your
-				// ending time");
 				return false;
 			} else if (startH == endH) {
 				if (startM >= endM) {
-					// System.out.println(ls + "Your starting time cannot be greater than your
-					// ending time");
 					return false;
 				}
 			}
