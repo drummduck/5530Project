@@ -29,7 +29,14 @@ public class UsefulnessRatings {
 	public static String rateFeedback(Connector con, String feedbackID, String loginName, String rating) {
 
 		String query = "";
-
+		
+		try {
+			Integer.parseInt(feedbackID);
+		}
+		catch(NumberFormatException e) {
+			return errorReturn;
+		}
+		
 		query = String.format("select loginName from Feedback where feedbackID = %d", Integer.parseInt(feedbackID));
 		try {
 			ResultSet rs = con.stmt.executeQuery(query);
