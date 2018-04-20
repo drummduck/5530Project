@@ -27,11 +27,11 @@ public class Trust {
 				Boolean update = false;
 				if (rs.next()) {
 					query = String.format(
-							"update user_Rating set trust = '%d' where loginName1 = '%s' and loginName2 = '%s'", a,
+							"update user_Rating set trust = '%d' where loginName1 = '%s' and loginName2 = '%s'", trusted,
 							loginName1, loginName2);
 				} else {
 					query = String.format(
-							"insert into user_Rating (trust,loginName1,loginName2) values ('%d','%s','%s')", a, login1,
+							"insert into user_Rating (trust,loginName1,loginName2) values ('%d','%s','%s')", trusted, loginName1,
 							loginName2);
 				}
 			}
