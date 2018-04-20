@@ -9,7 +9,7 @@ public class Browse {
 	static String errorReturn = "Information entered was in the wrong format \n"
 			+ "For category please enter economy, comfort, or luxury'<BR>";
 
-	public static String browser(Connector2 con, String categoryIn, String modelIn, String addressIn) {
+	public static String browser(Connector2 con, String categoryIn, String modelIn, String addressIn, Boolean trusted) {
 		Scanner scan = new Scanner(System.in);
 		String query = "";
 
@@ -41,8 +41,12 @@ public class Browse {
 		String returnString = "";
 		if (category.size() == 0 && address.size() == 0 && model.size() == 0) {
 
-			query = String.format(
+			if(!trusted)query = String.format(
 					"select b.vin, AVG(f.score) as average from UD a join UC b on a.id = b.id join UC_Rating r on b.vin = r.vin join Feedback f on f.feedbackID = r.feedbackID Group by b.vin order by average desc;");
+			else {
+				query = String.format(
+						"select b.vin, AVG(f.score) as average from UD a join UC b join user_Rating c on a.id = b.id join UC_Rating r on b.vin = r.vin join Feedback f on f.feedbackID = r.feedbackID where c.trust = 1 and c.loginName2 = f.loginName Group by b.vin order by average desc;");
+			}
 			try {
 				rs = con.stmt.executeQuery(query);
 				while (rs.next()) {
@@ -53,7 +57,9 @@ public class Browse {
 			}
 
 		} else {
-			String start = "select b.vin, AVG(f.score) as average from UD a join UC b on a.id = b.id join UC_Rating r on b.vin = r.vin join Feedback f on f.feedbackID = r.feedbackID where ";
+			String start; 
+			if(!trusted) start = "select b.vin, AVG(f.score) as average from UD a join UC b join user_Rating con a.id = b.id join UC_Rating r on b.vin = r.vin join Feedback f on f.feedbackID = r.feedbackID where ";
+			else start = "select b.vin, AVG(f.score) as average from UD a join UC b join user_Rating con a.id = b.id join UC_Rating r on b.vin = r.vin join Feedback f on f.feedbackID = r.feedbackID where c.trust = 1 and c.loginName2 = f.loginName and";
 			Boolean and = false;
 			if (category.size() != 0) {
 				and = true;
